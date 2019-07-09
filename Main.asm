@@ -1,6 +1,18 @@
 
 #include "p16lf15323.inc"
+#include "AC-Dimmer.inc"
 
+RECV_BUF udata_ovr
+CmdBuf	    res 6
+
+RECV_BUF udata_ovr
+CmdBufStart res 1
+CmdBufCmd   res 1
+CmdBufVal1H res 1
+CmdBufVal1L res 1
+CmdBufVal2H res 1
+CmdBufVal2L res 1
+    
 SHARED_VARS udata_shr
 Tmp1	res 1
 Tmp2	res 1
@@ -109,6 +121,15 @@ ALPHA_HEX_H:
     return
 ;End hexToNibble
     
+;resetCmdBuf
+;Restores CmdBuf pointer to FSR0
+resetCmdBuf:
+    movlw high CmdBuf
+    movwf FSR0H
+    movlw low CmdBuf
+    movwf FSR0L
+    return
+;End resetCmdBuf
     
 START:
     ;Setup analog select registers
@@ -179,23 +200,25 @@ START:
     bsf PIE0, TMR0IE
     bsf PIE2, ZCDIE
     
+    call resetCmdBuf
+    
 MAIN_LOOP:
-    swapf Val, w
-    andlw 0x0F ; w contains high nibble
-    call nibbleToHex ; w contains ascii for high nibble
-    movwf H
-    movf Val, w
-    andlw 0x0F ; w contains low nibble
-    call nibbleToHex ; w contains ascii for low nibble
-    movwf L
-    movf H, w
-    call hexToNibble
-    movwf H
-    swapf H, f
-    movf L, w
-    call hexToNibble
-    addwf H, w
-    incf Val, f
+    banksel PIR3 ; Bank 14
+    btfss PIR3, RC1IF
+    goto MAIN_LOOP
+    banksel RC1STA ; Bank 2
+    btfss RC1STA, FERR
+    goto NO_FERR
+    movf RC1REG, f
+    call resetCmdBuf
+    movlw CMD_NACK
+    call sendChar
+    goto CHECK_OERR
+NO_FERR:
+    
+CHECK_OERR:
+    banksel RC1STA
+    btfss RC1STA, OERR
     goto MAIN_LOOP
     
     
