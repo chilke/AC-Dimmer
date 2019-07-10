@@ -1,25 +1,16 @@
 
 #include "p16lf15323.inc"
 #include "AC-Dimmer.inc"
-
-RECV_BUF udata_ovr
-CmdBuf	    res 6
-
-RECV_BUF udata_ovr
-CmdBufStart res 1
-CmdBufCmd   res 1
-CmdBufVal1H res 1
-CmdBufVal1L res 1
-CmdBufVal2H res 1
-CmdBufVal2L res 1
     
 SHARED_VARS udata_shr
 Tmp1	res 1
 Tmp2	res 1
 Tmp3	res 1
-Val	res 1
-H	res 1
-L	res 1
+Cmd	res 1
+CmdVal1	res 1
+CmdVal2	res 1
+RcvCnt	res 1
+Rx	res 1
 
 RESET_VECT CODE 0x0000
    goto START
@@ -121,16 +112,6 @@ ALPHA_HEX_H:
     return
 ;End hexToNibble
     
-;resetCmdBuf
-;Restores CmdBuf pointer to FSR0
-resetCmdBuf:
-    movlw high CmdBuf
-    movwf FSR0H
-    movlw low CmdBuf
-    movwf FSR0L
-    return
-;End resetCmdBuf
-    
 START:
     ;Setup analog select registers
     ;ZCD on RA2 must have analog enabled
@@ -200,26 +181,107 @@ START:
     bsf PIE0, TMR0IE
     bsf PIE2, ZCDIE
     
-    call resetCmdBuf
+    clrf RcvCnt
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
     btfss PIR3, RC1IF
-    goto MAIN_LOOP
+    goto CHECK_OERR
     banksel RC1STA ; Bank 2
     btfss RC1STA, FERR
     goto NO_FERR
+;Has FERR, read byte, reset receive count, send NACK
+    ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, f
-    call resetCmdBuf
+    clrf RcvCnt
     movlw CMD_NACK
     call sendChar
-    goto CHECK_OERR
+    goto MAIN_LOOP
 NO_FERR:
+    ;banksel RC1REG ; Bank 2 already selected
+    movf RC1REG, w
+    movwf Rx
+    ;First check for Start Byte no matter RcvCnt
+    movlw CMD_START
+    subwf Rx, w
+    btfss STATUS, Z
+    goto NOT_START_BYTE
+    ;So we got a start byte, check if RcvCnt is 0
+    movlw CMD_NACK
+    movf RcvCnt, f
+    btfss STATUS, Z
+    call sendChar ;Send NACK if RcvCnt was not 0
+    clrf RcvCnt
+    incf RcvCnt, f
+    goto MAIN_LOOP
+NOT_START_BYTE:
+    movlw 0x07
+    andwf RcvCnt, w ; mask in first 3 bits just in case
+    brw
+    goto RCV_CNT_0
+    goto RCV_CNT_1
+    goto RCV_CNT_2
+    goto RCV_CNT_3
+    goto RCV_CNT_4
+    goto RCV_CNT_5
+    nop
+;Default RcvCnt 6 or 7 means we've received too much, should never happen
+    movlw CMD_NACK
+    call sendChar
+    clrf RcvCnt
+    goto MAIN_LOOP
+RCV_CNT_0:
+    ;If we got here we know this isn't a start byte, send NACK
+    movlw CMD_NACK
+    call sendChar
+    goto MAIN_LOOP
+RCV_CNT_1:
+    ;This should be our command byte, we'll test its value later
+    movf Rx, w
+    movwf Cmd
+    ;TODO - add check for no param commands and process here
+    goto MAIN_LOOP
+RCV_CNT_2:
+    ;This is the high nibble of the first param value
+    movf Rx, w
+    call hexToNibble
+    movwf CmdVal1
+    swapf CmdVal1, f
+    goto MAIN_LOOP
+RCV_CNT_3:
+    ;This is the low nibble of the first param value
+    movf Rx, w
+    call hexToNibble
+    addwf CmdVal1, f
+    ;TODO - add check for single param commands and process here
+    goto MAIN_LOOP
+RCV_CNT_4:
+    ;This is the high nibble of the second param value
+    movf Rx, w
+    call hexToNibble
+    movwf CmdVal2
+    swapf CmdVal2, f
+    goto MAIN_LOOP
+RCV_CNT_5:
+    ;This is the low nibble of the second param value
+    movf Rx, w
+    call hexToNibble
+    addwf CmdVal2, f
+    ;TODO - add check for two param commands and process here
     
+    ;TODO - if not a two param command, then send NACK and reset RcvCnt
+    goto MAIN_LOOP
+RCV_CNT_6:
+    goto MAIN_LOOP
 CHECK_OERR:
     banksel RC1STA
     btfss RC1STA, OERR
     goto MAIN_LOOP
-    
+;Has OERR, send NACK and clear/reset CREN to clear OERR
+    movlw CMD_NACK
+    call sendChar
+    bcf RC1STA, CREN
+    bsf RC1STA, CREN
+    goto MAIN_LOOP
     
     END
