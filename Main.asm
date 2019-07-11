@@ -193,10 +193,7 @@ MAIN_LOOP:
 ;Has FERR, read byte, reset receive count, send NACK
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, f
-    clrf RcvCnt
-    movlw CMD_NACK
-    call sendChar
-    goto MAIN_LOOP
+    goto CMD_FAILED
 NO_FERR:
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, w
@@ -217,6 +214,7 @@ NO_FERR:
 NOT_START_BYTE:
     movlw 0x07
     andwf RcvCnt, w ; mask in first 3 bits just in case
+    incf RcvCnt, f
     brw
     goto RCV_CNT_0
     goto RCV_CNT_1
@@ -224,45 +222,68 @@ NOT_START_BYTE:
     goto RCV_CNT_3
     goto RCV_CNT_4
     goto RCV_CNT_5
-    nop
+    goto RCV_CNT_6
 ;Default RcvCnt 6 or 7 means we've received too much, should never happen
-    movlw CMD_NACK
-    call sendChar
-    clrf RcvCnt
-    goto MAIN_LOOP
 RCV_CNT_0:
-    ;If we got here we know this isn't a start byte, send NACK
-    movlw CMD_NACK
-    call sendChar
-    goto MAIN_LOOP
+    ;If we got here we know this isn't a start byte
+    goto CMD_FAILED
 RCV_CNT_1:
-    ;This should be our command byte, we'll test its value later
+    ;This is the high nibble of the command byte
     movf Rx, w
+    call hexToNibble
     movwf Cmd
-    ;TODO - add check for no param commands and process here
+    swapf Cmd, f
     goto MAIN_LOOP
 RCV_CNT_2:
+    ;This is the low nibble of the command byte
+    movf Rx, w
+    call hexToNibble
+    addwf Cmd, f
+    ;First check that command is within range
+    movlw CMD_MAX+.1
+    subwf Cmd, w ;Cmd - (CMD_MAX+1)
+    ;This should generate Borrow or ~C if Cmd <= CMD_MAX
+    btfsc STATUS, C
+    goto BAD_CMD_VALUE
+    ;Check for 0 param command
+    movlw CMD_0_PARAM_MAX+.1
+    subwf Cmd, w ;Cmd - (CMD_0_PARAM_MAX+1)
+    ;This should generate Borrow or ~C if Cmd <= CMD_0_PARAM_MAX
+    btfsc STATUS, C
+    goto MAIN_LOOP ;Not 0 Param so assume more data on the way
+    ;So we have a 0 param command, lets process it
+    movf Cmd, w
+    brw
+    goto CH1_OFF
+    ;TODO - Add logic to turn channel 2 off
+    goto CMD_PROCESSED
+CH1_OFF:
+    ;TODO - Add logic to turn channel 1 off
+    goto CMD_PROCESSED
+BAD_CMD_VALUE:
+    goto CMD_FAILED
+RCV_CNT_3:
     ;This is the high nibble of the first param value
     movf Rx, w
     call hexToNibble
     movwf CmdVal1
     swapf CmdVal1, f
     goto MAIN_LOOP
-RCV_CNT_3:
+RCV_CNT_4:
     ;This is the low nibble of the first param value
     movf Rx, w
     call hexToNibble
     addwf CmdVal1, f
     ;TODO - add check for single param commands and process here
     goto MAIN_LOOP
-RCV_CNT_4:
+RCV_CNT_5:
     ;This is the high nibble of the second param value
     movf Rx, w
     call hexToNibble
     movwf CmdVal2
     swapf CmdVal2, f
     goto MAIN_LOOP
-RCV_CNT_5:
+RCV_CNT_6:
     ;This is the low nibble of the second param value
     movf Rx, w
     call hexToNibble
@@ -270,8 +291,6 @@ RCV_CNT_5:
     ;TODO - add check for two param commands and process here
     
     ;TODO - if not a two param command, then send NACK and reset RcvCnt
-    goto MAIN_LOOP
-RCV_CNT_6:
     goto MAIN_LOOP
 CHECK_OERR:
     banksel RC1STA
@@ -282,6 +301,18 @@ CHECK_OERR:
     call sendChar
     bcf RC1STA, CREN
     bsf RC1STA, CREN
+    goto MAIN_LOOP
+
+CMD_PROCESSED:
+    movlw CMD_ACK
+    call sendChar
+    clrf RcvCnt
+    goto MAIN_LOOP
+    
+CMD_FAILED:
+    movlw CMD_NACK
+    call sendChar
+    clrf RcvCnt
     goto MAIN_LOOP
     
     END

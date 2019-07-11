@@ -26,8 +26,8 @@ Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 181 : Register in 
 Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 182 : Register in operand not in bank 0.  Ensure that bank bits are correct.
 Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 188 : Register in operand not in bank 0.  Ensure that bank bits are correct.
 Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 191 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 194 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 201 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 277 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 282 : Register in operand not in bank 0.  Ensure that bank bits are correct.
-Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 283 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 195 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 199 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 303 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 308 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /Users/craig/MPLABXProjects/AC-Dimmer.X/Main.asm 309 : Register in operand not in bank 0.  Ensure that bank bits are correct.
