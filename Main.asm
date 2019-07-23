@@ -2,13 +2,26 @@
 #include "p16lf15323.inc"
 #include "AC-Dimmer.inc"
     
+BANK0_VARS udata 0x0020 ;20-6F
+Ch0Delay	res 2 ;20
+Ch1Delay	res 2 ;22
+
+Delay0		res 2 ;24
+Delay1		res 2 ;26
+Delay2		res 2 ;28
+
+TurnOn0		res 1 ;29
+TurnOn1		res 1 ;30
+
+CurrentDelay	res 1 ;31
+    
 SHARED_VARS udata_shr
+Tmp0	res 1
 Tmp1	res 1
 Tmp2	res 1
-Tmp3	res 1
 Cmd	res 1
-CmdVal1	res 1
-CmdVal2	res 1
+CmdValH	res 1
+CmdValL	res 1
 RcvCnt	res 1
 Rx	res 1
 
@@ -48,21 +61,21 @@ NO_TMR0IF:
 ;nibbleToHex
 ;Parameter nibble passed in wreg
 ;Return passed in wreg
-;Uses Tmp1 (nibble) and Tmp2 (return)
+;Uses Tmp0 (nibble) and Tmp1 (return)
 nibbleToHex:
-    movwf Tmp1 ;Nibble value
+    movwf Tmp0 ;Nibble value
     movlw a'0'
-    movwf Tmp2 ;Temporary return value
+    movwf Tmp1 ;Temporary return value
     movlw .10
-    subwf Tmp1, w ;nibble value - 10
+    subwf Tmp0, w ;nibble value - 10
     btfss STATUS, C ;carry means no borrow so nibble value >= 10
     goto UNDER_10
-    movwf Tmp1 ;wreg already contains nibble-10
+    movwf Tmp0 ;wreg already contains nibble-10
     movlw a'A'
-    movwf Tmp2
+    movwf Tmp1
 UNDER_10:
-    movf Tmp1, w
-    addwf Tmp2, w
+    movf Tmp0, w
+    addwf Tmp1, w
     return
 ;End nibbleToHex
    
@@ -80,15 +93,15 @@ WAIT:
     
 ;sendInt
 ;Parameter i passed in wreg
-;Uses Tmp3 i
-;NIBBLE_TO_HEX uses Tmp1, Tmp2
+;Uses Tmp2 i
+;NIBBLE_TO_HEX uses Tmp0, Tmp1
 sendInt:
-    movwf Tmp3
-    swapf Tmp3, w
+    movwf Tmp2
+    swapf Tmp2, w
     andlw 0x0F
     call nibbleToHex
     call sendChar
-    movf Tmp3, w
+    movf Tmp2, w
     andlw 0x0F
     call nibbleToHex
     call sendChar
@@ -97,15 +110,15 @@ sendInt:
 ;hexToNibble
 ;Parameter h passed in wreg
 ;Return value in wreg
-;Uses Tmp1 (h parameter)
+;Uses Tmp0 (h parameter)
 hexToNibble:
-    movwf Tmp1 ;h
+    movwf Tmp0 ;h
     movlw a'A'
-    subwf Tmp1, w ; h - 'A'
+    subwf Tmp0, w ; h - 'A'
     btfsc STATUS, C ; C clear means borrow or 'A' > h
     goto ALPHA_HEX_H
     movlw a'0'
-    subwf Tmp1, w ; h - '0'
+    subwf Tmp0, w ; h - '0'
     return
 ALPHA_HEX_H:
     addlw .10 ; Add 10 for A-F, w already contained h - 'A'
@@ -185,8 +198,12 @@ START:
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
+;Check if we have a receive byte
+;if PIR3.RC1IF
     btfss PIR3, RC1IF
     goto CHECK_OERR
+;We have a receive byte
+;Check for framing error on this byte
     banksel RC1STA ; Bank 2
     btfss RC1STA, FERR
     goto NO_FERR
@@ -244,54 +261,57 @@ RCV_CNT_2:
     subwf Cmd, w ;Cmd - (CMD_MAX+1)
     ;This should generate Borrow or ~C if Cmd <= CMD_MAX
     btfsc STATUS, C
-    goto BAD_CMD_VALUE
-    ;Check for 0 param command
-    movlw CMD_0_PARAM_MAX+.1
-    subwf Cmd, w ;Cmd - (CMD_0_PARAM_MAX+1)
-    ;This should generate Borrow or ~C if Cmd <= CMD_0_PARAM_MAX
-    btfsc STATUS, C
-    goto MAIN_LOOP ;Not 0 Param so assume more data on the way
-    ;So we have a 0 param command, lets process it
-    movf Cmd, w
-    brw
-    goto CH1_OFF
-    ;TODO - Add logic to turn channel 2 off
-    goto CMD_PROCESSED
-CH1_OFF:
-    ;TODO - Add logic to turn channel 1 off
-    goto CMD_PROCESSED
-BAD_CMD_VALUE:
-    goto CMD_FAILED
+    goto CMD_FAILED ;Cmd > CMD_MAX
+    goto MAIN_LOOP ;Cmd <= CMD_MAX
 RCV_CNT_3:
-    ;This is the high nibble of the first param value
+    ;This is the high nibble of the high param value
     movf Rx, w
     call hexToNibble
-    movwf CmdVal1
-    swapf CmdVal1, f
+    movwf CmdValH
+    swapf CmdValH, f
     goto MAIN_LOOP
 RCV_CNT_4:
-    ;This is the low nibble of the first param value
+    ;This is the low nibble of the high param value
     movf Rx, w
     call hexToNibble
-    addwf CmdVal1, f
-    ;TODO - add check for single param commands and process here
+    addwf CmdValH, f
     goto MAIN_LOOP
 RCV_CNT_5:
-    ;This is the high nibble of the second param value
+    ;This is the high nibble of the low param value
     movf Rx, w
     call hexToNibble
-    movwf CmdVal2
-    swapf CmdVal2, f
+    movwf CmdValL
+    swapf CmdValL, f
     goto MAIN_LOOP
 RCV_CNT_6:
-    ;This is the low nibble of the second param value
+    ;This is the low nibble of the low param value
     movf Rx, w
     call hexToNibble
-    addwf CmdVal2, f
-    ;TODO - add check for two param commands and process here
-    
-    ;TODO - if not a two param command, then send NACK and reset RcvCnt
-    goto MAIN_LOOP
+    addwf CmdValL, f
+;We've already validated Cmd is <= CMD_MAX, so let's just start processing
+    movf Cmd, w
+;Might as well do this now since all paths ahead need it
+    banksel Ch0Delay ; Bank 0
+    brw
+    goto SET_CH0
+;if more commands are added, change this to goto SET_CH1
+SET_CH1:
+    ; banksel Ch1Delay ; Bank 0 already set above
+    movf CmdValH, w
+    movwf Ch1Delay
+    movf CmdValL, w
+    movwf Ch1Delay+.1
+    ;TODO call Update Delays
+    goto CMD_PROCESSED
+SET_CH0:
+    ; banksel Ch0Delay ; Bank 0 already set above
+    movf CmdValH, w
+    movwf Ch0Delay
+    movf CmdValL, w
+    movwf Ch0Delay+.1
+    ;TODO call Update Delays
+    goto CMD_PROCESSED
+;No receive byte, check for overflow error here
 CHECK_OERR:
     banksel RC1STA
     btfss RC1STA, OERR

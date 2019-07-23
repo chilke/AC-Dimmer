@@ -1,4 +1,4 @@
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  1
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -16,257 +16,434 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00008 ;==========================================================================
                       00009 
                       03538         LIST
-                      00003 
-                      00004 SHARED_VARS udata_shr
-0000                  00005 Tmp1    res 1
-0001                  00006 Tmp2    res 1
-0002                  00007 Tmp3    res 1
-0003                  00008 Val     res 1
-0004                  00009 H       res 1
-0005                  00010 L       res 1
-                      00011 
-                      00012 RESET_VECT CODE 0x0000
-0000   2???           00013    goto START
-                      00014    
-                      00015 ISR_VECT CODE 0x0004
-0004                  00016 ISR:
-0004   014E           00017    banksel PIR0 ; Bank 14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0005   1E8C           00018    btfss PIR0, TMR0IF
-0006   2???           00019    goto NO_TMR0IF
-0007   014B           00020    banksel TMR0H ; Bank 11
-0008   30FF           00021    movlw 0xff
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0009   009D           00022    movwf TMR0H
-000A   300B           00023    movlw .11 ; 255-244
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-000B   009C           00024    movwf TMR0L
-000C   0140           00025    banksel LATA ; Bank 0
-000D   3020           00026    movlw b'00100000'
-000E   0698           00027    xorwf LATA, f
-000F   014E           00028    banksel PIR0 ; Bank 14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0010   128C           00029    bcf PIR0, TMR0IF
-0011                  00030 NO_TMR0IF:
-                      00031    ;banksel PIR2 ; Bank 14 No way to get here w/o bank 14 selected
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0011   1F0E           00032    btfss PIR2, ZCDIF
-0012   0009           00033    retfie ; TODO - Update to goto if further logic added
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0013   130E           00034    bcf PIR2, ZCDIF
-0014   0140           00035    banksel LATC ; Bank 0
-0015   101A           00036    bcf LATC, LATC0
-0016   0152           00037    banksel ZCDCON ; Bank 18
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  2
+                      00003 #include "AC-Dimmer.inc"
+                      00001 
+                      00002 #define CMD_ACK a'K'
+                      00003 #define CMD_NACK a'N'
+                      00004     
+                      00005 #define CMD_START a'S'
+                      00006 #define CMD_STOP a'P'
+                      00007 
+                      00008 ;No param commands
+                      00009 #define CMD_CH1_OFF .0
+                      00010 #define CMD_CH2_OFF .1
+                      00011 #define CMD_0_PARAM_MAX .1
+                      00012 ;Single param commands
+                      00013 #define CMD_1_PARAM_MAX .1
+                      00014 ;Two param commands
+                      00015 #define CMD_SET_PRESCALE .2
+                      00016 #define CMD_SET_TIMER .3
+                      00017 #define CMD_ECHO .4
+                      00018 #define CMD_MAX .4
+                      00004     
+                      00005 BANK0_VARS udata 0x0020 ;20-6F
+0020                  00006 Ch0Delay        res 2 ;20
+0022                  00007 Ch1Delay        res 2 ;22
+                      00008 
+0024                  00009 Delay0          res 2 ;24
+0026                  00010 Delay1          res 2 ;26
+0028                  00011 Delay2          res 2 ;28
+                      00012 
+002A                  00013 TurnOn0         res 1 ;29
+002B                  00014 TurnOn1         res 1 ;30
+                      00015 
+002C                  00016 CurrentDelay    res 1 ;31
+                      00017     
+                      00018 SHARED_VARS udata_shr
+0000                  00019 Tmp1    res 1
+0001                  00020 Tmp2    res 1
+0002                  00021 Tmp3    res 1
+0003                  00022 Cmd     res 1
+0004                  00023 CmdVal1 res 1
+0005                  00024 CmdVal2 res 1
+0006                  00025 RcvCnt  res 1
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
+0007                  00026 Rx      res 1
+                      00027 
+                      00028 RESET_VECT CODE 0x0000
+0000   2???           00029    goto START
+                      00030    
+                      00031 ISR_VECT CODE 0x0004
+0004                  00032 ISR:
+0004   014E           00033    banksel PIR0 ; Bank 14
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0017   1E9F           00038    btfss ZCDCON, ZCDOUT
-0018   0009           00039    retfie ; TODO - Update to goto if further logic added
-0019   0140           00040    banksel LATC ; Bank 0
-001A   141A           00041    bsf LATC, LATC0
-001B   0009           00042    retfie
-                      00043 ;End interrupt routine
-                      00044 
-                      00045 ;nibbleToHex
-                      00046 ;Parameter nibble passed in wreg
-                      00047 ;Return passed in wreg
-                      00048 ;Uses Tmp1 (nibble) and Tmp2 (return)
-001C                  00049 nibbleToHex:
-001C   00??           00050     movwf Tmp1 ;Nibble value
-001D   3030           00051     movlw a'0'
-001E   00??           00052     movwf Tmp2 ;Temporary return value
-001F   300A           00053     movlw .10
-0020   02??           00054     subwf Tmp1, w ;nibble value - 10
-0021   1C03           00055     btfss STATUS, C ;carry means no borrow so nibble value >= 10
-0022   2???           00056     goto UNDER_10
-0023   00??           00057     movwf Tmp1 ;wreg already contains nibble-10
-0024   3041           00058     movlw a'A'
-0025   00??           00059     movwf Tmp2
-0026                  00060 UNDER_10:
-0026   08??           00061     movf Tmp1, w
-0027   07??           00062     addwf Tmp2, w
-0028   0008           00063     return
-                      00064 ;End nibbleToHex
-                      00065    
-                      00066 ;sendChar
-                      00067 ;Parameter c passed in wreg
-0029                  00068 sendChar:
-0029   014E           00069     banksel PIR3 ; Bank 14
-002A                  00070 WAIT:
+0005   1E8C           00034    btfss PIR0, TMR0IF
+0006   2???           00035    goto NO_TMR0IF
+0007   014B           00036    banksel TMR0H ; Bank 11
+0008   30FF           00037    movlw 0xff
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-002A   1E0F           00071     btfss PIR3, TX1IF
-002B   2???           00072     goto WAIT ;Loop until TX1IF is set and we're ready to write
-                      00073     
-002C   0142           00074     banksel TX1REG ; Bank 2
+0009   009D           00038    movwf TMR0H
+000A   300B           00039    movlw .11 ; 255-244
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-002D   009A           00075     movwf TX1REG
-002E   0008           00076     return
-                      00077     
-                      00078 ;sendInt
-                      00079 ;Parameter i passed in wreg
-                      00080 ;Uses Tmp3 i
-                      00081 ;NIBBLE_TO_HEX uses Tmp1, Tmp2
-002F                  00082 sendInt:
-002F   00??           00083     movwf Tmp3
-0030   0E??           00084     swapf Tmp3, w
-0031   390F           00085     andlw 0x0F
-0032   2???           00086     call nibbleToHex
-0033   2???           00087     call sendChar
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  3
+000B   009C           00040    movwf TMR0L
+000C   0140           00041    banksel LATA ; Bank 0
+000D   3020           00042    movlw b'00100000'
+000E   0698           00043    xorwf LATA, f
+000F   014E           00044    banksel PIR0 ; Bank 14
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0010   128C           00045    bcf PIR0, TMR0IF
+0011                  00046 NO_TMR0IF:
+                      00047    ;banksel PIR2 ; Bank 14 No way to get here w/o bank 14 selected
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0011   1F0E           00048    btfss PIR2, ZCDIF
+0012   0009           00049    retfie ; TODO - Update to goto if further logic added
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0013   130E           00050    bcf PIR2, ZCDIF
+0014   0140           00051    banksel LATC ; Bank 0
+0015   101A           00052    bcf LATC, LATC0
+0016   0152           00053    banksel ZCDCON ; Bank 18
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0017   1E9F           00054    btfss ZCDCON, ZCDOUT
+0018   0009           00055    retfie ; TODO - Update to goto if further logic added
+0019   0140           00056    banksel LATC ; Bank 0
+001A   141A           00057    bsf LATC, LATC0
+001B   0009           00058    retfie
+                      00059 ;End interrupt routine
+                      00060 
+                      00061 ;nibbleToHex
+                      00062 ;Parameter nibble passed in wreg
+                      00063 ;Return passed in wreg
+                      00064 ;Uses Tmp1 (nibble) and Tmp2 (return)
+001C                  00065 nibbleToHex:
+001C   00??           00066     movwf Tmp1 ;Nibble value
+001D   3030           00067     movlw a'0'
+001E   00??           00068     movwf Tmp2 ;Temporary return value
+001F   300A           00069     movlw .10
+0020   02??           00070     subwf Tmp1, w ;nibble value - 10
+0021   1C03           00071     btfss STATUS, C ;carry means no borrow so nibble value >= 10
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-0034   08??           00088     movf Tmp3, w
-0035   390F           00089     andlw 0x0F
-0036   2???           00090     call nibbleToHex
-0037   2???           00091     call sendChar
-0038   0008           00092     return
+0022   2???           00072     goto UNDER_10
+0023   00??           00073     movwf Tmp1 ;wreg already contains nibble-10
+0024   3041           00074     movlw a'A'
+0025   00??           00075     movwf Tmp2
+0026                  00076 UNDER_10:
+0026   08??           00077     movf Tmp1, w
+0027   07??           00078     addwf Tmp2, w
+0028   0008           00079     return
+                      00080 ;End nibbleToHex
+                      00081    
+                      00082 ;sendChar
+                      00083 ;Parameter c passed in wreg
+0029                  00084 sendChar:
+0029   014E           00085     banksel PIR3 ; Bank 14
+002A                  00086 WAIT:
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002A   1E0F           00087     btfss PIR3, TX1IF
+002B   2???           00088     goto WAIT ;Loop until TX1IF is set and we're ready to write
+                      00089     
+002C   0142           00090     banksel TX1REG ; Bank 2
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+002D   009A           00091     movwf TX1REG
+002E   0008           00092     return
                       00093     
-                      00094 ;hexToNibble
-                      00095 ;Parameter h passed in wreg
-                      00096 ;Return value in wreg
-                      00097 ;Uses Tmp1 (h parameter)
-0039                  00098 hexToNibble:
-0039   00??           00099     movwf Tmp1 ;h
-003A   3041           00100     movlw a'A'
-003B   02??           00101     subwf Tmp1, w ; h - 'A'
-003C   1803           00102     btfsc STATUS, C ; C clear means borrow or 'A' > h
-003D   2???           00103     goto ALPHA_HEX_H
-003E   3030           00104     movlw a'0'
-003F   02??           00105     subwf Tmp1, w ; h - '0'
-0040   0008           00106     return
-0041                  00107 ALPHA_HEX_H:
-0041   3E0A           00108     addlw .10 ; Add 10 for A-F, w already contained h - 'A'
-0042   0008           00109     return
-                      00110 ;End hexToNibble
-                      00111     
-                      00112     
-0043                  00113 START:
-                      00114     ;Setup analog select registers
-                      00115     ;ZCD on RA2 must have analog enabled
-0043   017E           00116     banksel ANSELA ;Bank 62
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0044   01B8           00117     clrf ANSELA
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0045   01CE           00118     clrf ANSELC
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0046   1538           00119     bsf ANSELA, ANSA2
-                      00120     ;Setup PPS outputs
-                      00121     ;0f-EUSART TX on RC4
-0047   300F           00122     movlw 0x0f
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0048   00A4           00123     movwf RC4PPS
-                      00124     
-                      00125     ;Setup I/O Pins, all output 0 by default
-                      00126     ;RA2 is ZCD and must be input
-                      00127     ;RC5 is EUSART RX
-0049   0140           00128     banksel LATA; Bank 0
-004A   0198           00129     clrf LATA
-004B   019A           00130     clrf LATC
-004C   0192           00131     clrf TRISA
-004D   0194           00132     clrf TRISC
-004E   1512           00133     bsf TRISA, TRISA2
-004F   1694           00134     bsf TRISC, TRISC5
-                      00135     
-                      00136     ;Setup PPS inputs
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  4
+                      00094 ;sendInt
+                      00095 ;Parameter i passed in wreg
+                      00096 ;Uses Tmp3 i
+                      00097 ;NIBBLE_TO_HEX uses Tmp1, Tmp2
+002F                  00098 sendInt:
+002F   00??           00099     movwf Tmp3
+0030   0E??           00100     swapf Tmp3, w
+0031   390F           00101     andlw 0x0F
+0032   2???           00102     call nibbleToHex
+0033   2???           00103     call sendChar
+0034   08??           00104     movf Tmp3, w
+0035   390F           00105     andlw 0x0F
+0036   2???           00106     call nibbleToHex
+0037   2???           00107     call sendChar
+0038   0008           00108     return
+                      00109     
+                      00110 ;hexToNibble
+                      00111 ;Parameter h passed in wreg
+                      00112 ;Return value in wreg
+                      00113 ;Uses Tmp1 (h parameter)
+0039                  00114 hexToNibble:
+0039   00??           00115     movwf Tmp1 ;h
+003A   3041           00116     movlw a'A'
+003B   02??           00117     subwf Tmp1, w ; h - 'A'
+003C   1803           00118     btfsc STATUS, C ; C clear means borrow or 'A' > h
+003D   2???           00119     goto ALPHA_HEX_H
+003E   3030           00120     movlw a'0'
+003F   02??           00121     subwf Tmp1, w ; h - '0'
+0040   0008           00122     return
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00137     ;EUSART TX on RC4
-                      00138     ;EUSART RX on RC5
-0050   017D           00139     banksel TX1CKPPS ; Bank 61
-0051   3014           00140     movlw 0x14
+0041                  00123 ALPHA_HEX_H:
+0041   3E0A           00124     addlw .10 ; Add 10 for A-F, w already contained h - 'A'
+0042   0008           00125     return
+                      00126 ;End hexToNibble
+                      00127     
+0043                  00128 START:
+                      00129     ;Setup analog select registers
+                      00130     ;ZCD on RA2 must have analog enabled
+0043   017E           00131     banksel ANSELA ;Bank 62
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0052   00CC           00141     movwf TX1CKPPS
-0053   3015           00142     movlw 0x15
+0044   01B8           00132     clrf ANSELA
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0054   00CB           00143     movwf RX1DTPPS
-                      00144     
-                      00145     ;Setup EUSART
-0055   0142           00146     banksel SP1BRGH ; Bank 2
-                      00147     ;clrf SP1BRGH ; Resets to 0
-                      00148     ;clrf SP1BRGL ; Resets to 0
+0045   01CE           00133     clrf ANSELC
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0056   161B           00149     bsf SP1BRGL, 4 ; 16
-                      00150     ;clrf BAUD1CON ; Resets to 0
-0057   3024           00151     movlw b'00100100'
+0046   1538           00134     bsf ANSELA, ANSA2
+                      00135     ;Setup PPS outputs
+                      00136     ;0f-EUSART TX on RC4
+0047   300F           00137     movlw 0x0f
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0058   009E           00152     movwf TX1STA
-0059   3090           00153     movlw b'10010000'
+0048   00A4           00138     movwf RC4PPS
+                      00139     
+                      00140     ;Setup I/O Pins, all output 0 by default
+                      00141     ;RA2 is ZCD and must be input
+                      00142     ;RC5 is EUSART RX
+0049   0140           00143     banksel LATA; Bank 0
+004A   0198           00144     clrf LATA
+004B   019A           00145     clrf LATC
+004C   0192           00146     clrf TRISA
+004D   0194           00147     clrf TRISC
+004E   1512           00148     bsf TRISA, TRISA2
+004F   1694           00149     bsf TRISC, TRISC5
+                      00150     
+                      00151     ;Setup PPS inputs
+                      00152     ;EUSART TX on RC4
+                      00153     ;EUSART RX on RC5
+0050   017D           00154     banksel TX1CKPPS ; Bank 61
+0051   3014           00155     movlw 0x14
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-005A   009D           00154     movwf RC1STA
-                      00155     
-                      00156     ;Setup Timer 0
-005B   014B           00157     banksel T0CON0 ; Bank 11
-                      00158     ;clrf T0CON0 ; Resets to 0
+0052   00CC           00156     movwf TX1CKPPS
+0053   3015           00157     movlw 0x15
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-005C   161E           00159     bsf T0CON0, T016BIT
-005D   304F           00160     movlw b'01001111'
+0054   00CB           00158     movwf RX1DTPPS
+                      00159     
+                      00160     ;Setup EUSART
+0055   0142           00161     banksel SP1BRGH ; Bank 2
+                      00162     ;clrf SP1BRGH ; Resets to 0
+                      00163     ;clrf SP1BRGL ; Resets to 0
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-005E   009F           00161     movwf T0CON1
-005F   30FF           00162     movlw 0xff
+0056   161B           00164     bsf SP1BRGL, 4 ; 16
+                      00165     ;clrf BAUD1CON ; Resets to 0
+0057   3024           00166     movlw b'00100100'
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0060   009D           00163     movwf TMR0H
-0061   300B           00164     movlw .11 ;255-244
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0062   009C           00165     movwf TMR0L
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0063   179E           00166     bsf T0CON0, T0EN
-                      00167     
-                      00168     ;Setup ZCD
-0064   0152           00169     banksel ZCDCON ; Bank 18
-0065   3083           00170     movlw b'10000011'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0066   009F           00171     movwf ZCDCON
-                      00172     
-                      00173     ;Setup Interrupts Global Bank
-0067   170B           00174     bsf INTCON, PEIE
-0068   178B           00175     bsf INTCON, GIE
-                      00176     
-                      00177     ;Setup Interrupts NonGlobal Bank
-0069   014E           00178     banksel PIE0 ; Bank 14
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  5
+0058   009E           00167     movwf TX1STA
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
+0059   3090           00168     movlw b'10010000'
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-006A   1696           00179     bsf PIE0, TMR0IE
+005A   009D           00169     movwf RC1STA
+                      00170     
+                      00171     ;Setup Timer 0
+005B   014B           00172     banksel T0CON0 ; Bank 11
+                      00173     ;clrf T0CON0 ; Resets to 0
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-006B   1718           00180     bsf PIE2, ZCDIE
-                      00181     
-006C                  00182 MAIN_LOOP:
-006C   0E??           00183     swapf Val, w
-006D   390F           00184     andlw 0x0F ; w contains high nibble
-006E   2???           00185     call nibbleToHex ; w contains ascii for high nibble
-006F   00??           00186     movwf H
-0070   08??           00187     movf Val, w
-0071   390F           00188     andlw 0x0F ; w contains low nibble
-0072   2???           00189     call nibbleToHex ; w contains ascii for low nibble
-0073   00??           00190     movwf L
-0074   08??           00191     movf H, w
-0075   2???           00192     call hexToNibble
-0076   00??           00193     movwf H
-0077   0E??           00194     swapf H, f
-0078   08??           00195     movf L, w
-0079   2???           00196     call hexToNibble
-007A   07??           00197     addwf H, w
-007B   0A??           00198     incf Val, f
-007C   2???           00199     goto MAIN_LOOP
-                      00200     
-                      00201     
-                      00202     END
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  6
+005C   161E           00174     bsf T0CON0, T016BIT
+005D   304F           00175     movlw b'01001111'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+005E   009F           00176     movwf T0CON1
+005F   30FF           00177     movlw 0xff
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0060   009D           00178     movwf TMR0H
+0061   300B           00179     movlw .11 ;255-244
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0062   009C           00180     movwf TMR0L
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0063   179E           00181     bsf T0CON0, T0EN
+                      00182     
+                      00183     ;Setup ZCD
+0064   0152           00184     banksel ZCDCON ; Bank 18
+0065   3083           00185     movlw b'10000011'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0066   009F           00186     movwf ZCDCON
+                      00187     
+                      00188     ;Setup Interrupts Global Bank
+0067   170B           00189     bsf INTCON, PEIE
+0068   178B           00190     bsf INTCON, GIE
+                      00191     
+                      00192     ;Setup Interrupts NonGlobal Bank
+0069   014E           00193     banksel PIE0 ; Bank 14
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+006A   1696           00194     bsf PIE0, TMR0IE
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+006B   1718           00195     bsf PIE2, ZCDIE
+                      00196     
+006C   01??           00197     clrf RcvCnt
+                      00198     
+006D                  00199 MAIN_LOOP:
+006D   014E           00200     banksel PIR3 ; Bank 14
+                      00201 ;Check if we have a receive byte
+                      00202 ;if PIR3.RC1IF
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+006E   1E8F           00203     btfss PIR3, RC1IF
+006F   2???           00204     goto CHECK_OERR
+                      00205 ;We have a receive byte
+                      00206 ;Check for framing error on this byte
+0070   0142           00207     banksel RC1STA ; Bank 2
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0071   1D1D           00208     btfss RC1STA, FERR
+0072   2???           00209     goto NO_FERR
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00210 ;Has FERR, read byte, reset receive count, send NACK
+                      00211     ;banksel RC1REG ; Bank 2 already selected
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0073   0899           00212     movf RC1REG, f
+0074   2???           00213     goto CMD_FAILED
+0075                  00214 NO_FERR:
+                      00215     ;banksel RC1REG ; Bank 2 already selected
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0075   0819           00216     movf RC1REG, w
+0076   00??           00217     movwf Rx
+                      00218     ;First check for Start Byte no matter RcvCnt
+0077   3053           00219     movlw CMD_START
+0078   02??           00220     subwf Rx, w
+0079   1D03           00221     btfss STATUS, Z
+007A   2???           00222     goto NOT_START_BYTE
+                      00223     ;So we got a start byte, check if RcvCnt is 0
+007B   304E           00224     movlw CMD_NACK
+007C   08??           00225     movf RcvCnt, f
+007D   1D03           00226     btfss STATUS, Z
+007E   2???           00227     call sendChar ;Send NACK if RcvCnt was not 0
+007F   01??           00228     clrf RcvCnt
+0080   0A??           00229     incf RcvCnt, f
+0081   2???           00230     goto MAIN_LOOP
+0082                  00231 NOT_START_BYTE:
+0082   3007           00232     movlw 0x07
+0083   05??           00233     andwf RcvCnt, w ; mask in first 3 bits just in case
+0084   0A??           00234     incf RcvCnt, f
+0085   000B           00235     brw
+0086   2???           00236     goto RCV_CNT_0
+0087   2???           00237     goto RCV_CNT_1
+0088   2???           00238     goto RCV_CNT_2
+0089   2???           00239     goto RCV_CNT_3
+008A   2???           00240     goto RCV_CNT_4
+008B   2???           00241     goto RCV_CNT_5
+008C   2???           00242     goto RCV_CNT_6
+                      00243 ;Default RcvCnt 6 or 7 means we've received too much, should never happen
+008D                  00244 RCV_CNT_0:
+                      00245     ;If we got here we know this isn't a start byte
+008D   2???           00246     goto CMD_FAILED
+008E                  00247 RCV_CNT_1:
+                      00248     ;This is the high nibble of the command byte
+008E   08??           00249     movf Rx, w
+008F   2???           00250     call hexToNibble
+0090   00??           00251     movwf Cmd
+0091   0E??           00252     swapf Cmd, f
+0092   2???           00253     goto MAIN_LOOP
+0093                  00254 RCV_CNT_2:
+                      00255     ;This is the low nibble of the command byte
+0093   08??           00256     movf Rx, w
+0094   2???           00257     call hexToNibble
+0095   07??           00258     addwf Cmd, f
+                      00259     ;First check that command is within range
+0096   3005           00260     movlw CMD_MAX+.1
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0097   02??           00261     subwf Cmd, w ;Cmd - (CMD_MAX+1)
+                      00262     ;This should generate Borrow or ~C if Cmd <= CMD_MAX
+0098   1803           00263     btfsc STATUS, C
+0099   2???           00264     goto BAD_CMD_VALUE
+                      00265     ;Check for 0 param command
+009A   3002           00266     movlw CMD_0_PARAM_MAX+.1
+009B   02??           00267     subwf Cmd, w ;Cmd - (CMD_0_PARAM_MAX+1)
+                      00268     ;This should generate Borrow or ~C if Cmd <= CMD_0_PARAM_MAX
+009C   1803           00269     btfsc STATUS, C
+009D   2???           00270     goto MAIN_LOOP ;Not 0 Param so assume more data on the way
+                      00271     ;So we have a 0 param command, lets process it
+009E   08??           00272     movf Cmd, w
+009F   000B           00273     brw
+00A0   2???           00274     goto CH1_OFF
+                      00275     ;TODO - Add logic to turn channel 2 off
+00A1   2???           00276     goto CMD_PROCESSED
+00A2                  00277 CH1_OFF:
+                      00278     ;TODO - Add logic to turn channel 1 off
+00A2   2???           00279     goto CMD_PROCESSED
+00A3                  00280 BAD_CMD_VALUE:
+00A3   2???           00281     goto CMD_FAILED
+00A4                  00282 RCV_CNT_3:
+                      00283     ;This is the high nibble of the first param value
+00A4   08??           00284     movf Rx, w
+00A5   2???           00285     call hexToNibble
+00A6   00??           00286     movwf CmdVal1
+00A7   0E??           00287     swapf CmdVal1, f
+00A8   2???           00288     goto MAIN_LOOP
+00A9                  00289 RCV_CNT_4:
+                      00290     ;This is the low nibble of the first param value
+00A9   08??           00291     movf Rx, w
+00AA   2???           00292     call hexToNibble
+00AB   07??           00293     addwf CmdVal1, f
+                      00294     ;TODO - add check for single param commands and process here
+00AC   2???           00295     goto MAIN_LOOP
+00AD                  00296 RCV_CNT_5:
+                      00297     ;This is the high nibble of the second param value
+00AD   08??           00298     movf Rx, w
+00AE   2???           00299     call hexToNibble
+00AF   00??           00300     movwf CmdVal2
+00B0   0E??           00301     swapf CmdVal2, f
+00B1   2???           00302     goto MAIN_LOOP
+00B2                  00303 RCV_CNT_6:
+                      00304     ;This is the low nibble of the second param value
+00B2   08??           00305     movf Rx, w
+00B3   2???           00306     call hexToNibble
+00B4   07??           00307     addwf CmdVal2, f
+                      00308     ;TODO - add check for two param commands and process here
+                      00309     
+                      00310     ;TODO - if not a two param command, then send NACK and reset RcvCnt
+00B5   2???           00311     goto MAIN_LOOP
+                      00312 ;No receive byte, check for overflow error here
+00B6                  00313 CHECK_OERR:
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00B6   0142           00314     banksel RC1STA
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+00B7   1C9D           00315     btfss RC1STA, OERR
+00B8   2???           00316     goto MAIN_LOOP
+                      00317 ;Has OERR, send NACK and clear/reset CREN to clear OERR
+00B9   304E           00318     movlw CMD_NACK
+00BA   2???           00319     call sendChar
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+00BB   121D           00320     bcf RC1STA, CREN
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+00BC   161D           00321     bsf RC1STA, CREN
+00BD   2???           00322     goto MAIN_LOOP
+                      00323 
+00BE                  00324 CMD_PROCESSED:
+00BE   304B           00325     movlw CMD_ACK
+00BF   2???           00326     call sendChar
+00C0   01??           00327     clrf RcvCnt
+00C1   2???           00328     goto MAIN_LOOP
+                      00329     
+00C2                  00330 CMD_FAILED:
+00C2   304E           00331     movlw CMD_NACK
+00C3   2???           00332     call sendChar
+00C4   01??           00333     clrf RcvCnt
+00C5   2???           00334     goto MAIN_LOOP
+                      00335     
+                      00336     END
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  9
 
 
 SYMBOL TABLE
@@ -325,7 +502,7 @@ ADRESH6                           00000006
 ADRESH7                           00000007
 ADRESL                            0000009B
 ADRESL0                           00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  7
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 10
 
 
 SYMBOL TABLE
@@ -359,6 +536,7 @@ AS1E                              00000001
 AS2E                              00000002
 AS3E                              00000003
 AS4E                              00000004
+BAD_CMD_VALUE                     000000A3
 BAUD1CON                          0000011F
 BAUDCON                           0000011F
 BAUDCON1                          0000011F
@@ -383,13 +561,13 @@ BSR_SHAD                          00001FE6
 C                                 00000000
 C1EN                              00000007
 C1HYS                             00000001
-C1IE                              00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  8
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 11
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+C1IE                              00000000
 C1IF                              00000000
 C1INTN                            00000000
 C1INTP                            00000001
@@ -442,13 +620,13 @@ CCP1PPS1                          00000001
 CCP1PPS2                          00000002
 CCP1PPS3                          00000003
 CCP1PPS4                          00000004
-CCP1PPS5                          00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE  9
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 12
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+CCP1PPS5                          00000005
 CCP2CAP                           00000313
 CCP2CON                           00000312
 CCP2CTS0                          00000000
@@ -483,6 +661,8 @@ CDIV0                             00000000
 CDIV1                             00000001
 CDIV2                             00000002
 CDIV3                             00000003
+CH1_OFF                           000000A2
+CHECK_OERR                        000000B6
 CHS0                              00000002
 CHS1                              00000003
 CHS2                              00000004
@@ -499,15 +679,15 @@ CKSYNC                            00000005
 CLC1CON                           00001E10
 CLC1GLS0                          00001E16
 CLC1GLS1                          00001E17
-CLC1GLS2                          00001E18
-CLC1GLS3                          00001E19
-CLC1IE                            00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 10
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 13
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+CLC1GLS2                          00001E18
+CLC1GLS3                          00001E19
+CLC1IE                            00000004
 CLC1IF                            00000004
 CLC1MD                            00000001
 CLC1POL                           00001E11
@@ -558,15 +738,15 @@ CLCDATA                           00001E0F
 CLCIN0PPS                         00001EBB
 CLCIN0PPS0                        00000000
 CLCIN0PPS1                        00000001
-CLCIN0PPS2                        00000002
-CLCIN0PPS3                        00000003
-CLCIN0PPS4                        00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 11
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 14
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
+CLCIN0PPS2                        00000002
+CLCIN0PPS3                        00000003
+CLCIN0PPS4                        00000004
 CLCIN0PPS5                        00000005
 CLCIN1PPS                         00001EBC
 CLCIN1PPS0                        00000000
@@ -610,6 +790,26 @@ CM2CON0                           00000994
 CM2CON1                           00000995
 CM2NCH                            00000996
 CM2PCH                            00000997
+CMD_0_PARAM_MAX                   .1
+CMD_1_PARAM_MAX                   .1
+CMD_ACK                           a'K'
+CMD_CH1_OFF                       .0
+CMD_CH2_OFF                       .1
+CMD_ECHO                          .4
+CMD_FAILED                        000000C2
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 15
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+CMD_MAX                           .4
+CMD_NACK                          a'N'
+CMD_PROCESSED                     000000BE
+CMD_SET_PRESCALE                  .2
+CMD_SET_TIMER                     .3
+CMD_START                         a'S'
+CMD_STOP                          a'P'
 CMOUT                             0000098F
 CMP1MD                            00000001
 CMP2MD                            00000002
@@ -620,12 +820,6 @@ COSC2                             00000006
 CPUDOZE                           0000088C
 CREN                              00000004
 CS                                00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 12
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 CS0                               00000000
 CS1                               00000001
 CS2                               00000002
@@ -662,6 +856,12 @@ CWG1DBR2                          00000002
 CWG1DBR3                          00000003
 CWG1DBR4                          00000004
 CWG1DBR5                          00000005
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 16
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 CWG1EN                            00000007
 CWG1IE                            00000000
 CWG1IF                            00000000
@@ -679,12 +879,6 @@ CWG1OVRA                          00000004
 CWG1OVRB                          00000005
 CWG1OVRC                          00000006
 CWG1OVRD                          00000007
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 13
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 CWG1POLA                          00000000
 CWG1POLB                          00000001
 CWG1POLC                          00000002
@@ -703,6 +897,12 @@ CWG1STRA                          00000000
 CWG1STRB                          00000001
 CWG1STRC                          00000002
 CWG1STRD                          00000003
+Ch0Delay                          00000020
+Ch1Delay                          00000022
+Cmd                               00000003
+CmdVal1                           00000004
+CmdVal2                           00000005
+CurrentDelay                      0000002C
 D1N                               00000000
 D1S0                              00000000
 D1S1                              00000001
@@ -715,6 +915,12 @@ D2N                               00000002
 D2S0                              00000000
 D2S1                              00000001
 D2S2                              00000002
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 17
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 D2S3                              00000003
 D2S4                              00000004
 D2S5                              00000005
@@ -738,12 +944,6 @@ D4T                               00000007
 DAC1CON0                          0000090E
 DAC1CON1                          0000090F
 DAC1EN                            00000007
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 14
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 DAC1MD                            00000006
 DAC1NSS                           00000000
 DAC1OE1                           00000005
@@ -774,6 +974,12 @@ DC1                               00000007
 DC2                               00000000
 DC3                               00000001
 DC4                               00000002
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 18
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 DC5                               00000003
 DC6                               00000004
 DC7                               00000005
@@ -788,6 +994,9 @@ DOZE2                             00000002
 DOZEN                             00000006
 D_A                               00000005
 D_NOT_A                           00000005
+Delay0                            00000024
+Delay1                            00000026
+Delay2                            00000028
 EN                                00000007
 EXTOEN                            00000007
 EXTOR                             00000007
@@ -797,12 +1006,6 @@ FMT                               00000004
 FREE                              00000004
 FSR0                              00000004
 FSR0H                             00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 15
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 FSR0H_SHAD                        00001FE9
 FSR0L                             00000004
 FSR0L_SHAD                        00001FE8
@@ -830,6 +1033,12 @@ G4D3T                             00000005
 G4D4N                             00000006
 G4D4T                             00000007
 G4POL                             00000003
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 19
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 GCEN                              00000007
 GE                                00000007
 GGO_NOT_DONE                      00000003
@@ -844,7 +1053,6 @@ GSS3                              00000003
 GSS4                              00000004
 GTM                               00000005
 GVAL                              00000002
-H                                 00000004
 HFFRQ0                            00000000
 HFFRQ1                            00000001
 HFFRQ2                            00000002
@@ -856,12 +1064,6 @@ HFTUN2                            00000002
 HFTUN3                            00000003
 HFTUN4                            00000004
 HFTUN5                            00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 16
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 HYS                               00000001
 I2C_DAT                           00000005
 I2C_READ                          00000002
@@ -890,6 +1092,12 @@ INTE                              00000000
 INTEDG                            00000000
 INTF                              00000000
 INTN_CLC1CON                      00000003
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 20
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 INTN_CLC2CON                      00000003
 INTN_CLC3CON                      00000003
 INTN_CLC4CON                      00000003
@@ -915,12 +1123,6 @@ IOCAF2                            00000002
 IOCAF3                            00000003
 IOCAF4                            00000004
 IOCAF5                            00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 17
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 IOCAN                             00001F3E
 IOCAN0                            00000000
 IOCAN1                            00000001
@@ -949,6 +1151,12 @@ IOCCN2                            00000002
 IOCCN3                            00000003
 IOCCN4                            00000004
 IOCCN5                            00000005
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 21
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 IOCCP                             00001F53
 IOCCP0                            00000000
 IOCCP1                            00000001
@@ -960,7 +1168,6 @@ IOCIE                             00000004
 IOCIF                             00000004
 IOCMD                             00000000
 ISR                               00000004
-L                                 00000005
 LATA                              00000018
 LATA0                             00000000
 LATA1                             00000001
@@ -974,12 +1181,6 @@ LATC2                             00000002
 LATC3                             00000003
 LATC4                             00000004
 LATC5                             00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 18
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC1D1S0                           00000000
 LC1D1S1                           00000001
 LC1D1S2                           00000002
@@ -1009,6 +1210,12 @@ LC1G1D1N                          00000000
 LC1G1D1T                          00000001
 LC1G1D2N                          00000002
 LC1G1D2T                          00000003
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 22
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 LC1G1D3N                          00000004
 LC1G1D3T                          00000005
 LC1G1D4N                          00000006
@@ -1033,12 +1240,6 @@ LC1G3D4N                          00000006
 LC1G3D4T                          00000007
 LC1G3POL                          00000002
 LC1G4D1N                          00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 19
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC1G4D1T                          00000001
 LC1G4D2N                          00000002
 LC1G4D2T                          00000003
@@ -1068,6 +1269,12 @@ LC2D2S4                           00000004
 LC2D2S5                           00000005
 LC2D3S0                           00000000
 LC2D3S1                           00000001
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 23
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 LC2D3S2                           00000002
 LC2D3S3                           00000003
 LC2D3S4                           00000004
@@ -1092,12 +1299,6 @@ LC2G2D1N                          00000000
 LC2G2D1T                          00000001
 LC2G2D2N                          00000002
 LC2G2D2T                          00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 20
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC2G2D3N                          00000004
 LC2G2D3T                          00000005
 LC2G2D4N                          00000006
@@ -1127,6 +1328,12 @@ LC2MODE0                          00000000
 LC2MODE1                          00000001
 LC2MODE2                          00000002
 LC2OUT                            00000005
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 24
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 LC2POL                            00000007
 LC3D1S0                           00000000
 LC3D1S1                           00000001
@@ -1151,12 +1358,6 @@ LC3D4S1                           00000001
 LC3D4S2                           00000002
 LC3D4S3                           00000003
 LC3D4S4                           00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 21
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC3D4S5                           00000005
 LC3EN                             00000007
 LC3G1D1N                          00000000
@@ -1186,6 +1387,12 @@ LC3G3D3T                          00000005
 LC3G3D4N                          00000006
 LC3G3D4T                          00000007
 LC3G3POL                          00000002
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 25
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 LC3G4D1N                          00000000
 LC3G4D1T                          00000001
 LC3G4D2N                          00000002
@@ -1210,12 +1417,6 @@ LC4D1S4                           00000004
 LC4D1S5                           00000005
 LC4D2S0                           00000000
 LC4D2S1                           00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 22
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC4D2S2                           00000002
 LC4D2S3                           00000003
 LC4D2S4                           00000004
@@ -1245,6 +1446,12 @@ LC4G1POL                          00000000
 LC4G2D1N                          00000000
 LC4G2D1T                          00000001
 LC4G2D2N                          00000002
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 26
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 LC4G2D2T                          00000003
 LC4G2D3N                          00000004
 LC4G2D3T                          00000005
@@ -1269,12 +1476,6 @@ LC4G4D3T                          00000005
 LC4G4D4N                          00000006
 LC4G4D4T                          00000007
 LC4G4POL                          00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 23
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 LC4INTN                           00000003
 LC4INTP                           00000004
 LC4MODE0                          00000000
@@ -1290,7 +1491,7 @@ LSAC1                             00000003
 LSBD0                             00000004
 LSBD1                             00000005
 LWLO                              00000005
-MAIN_LOOP                         0000006C
+MAIN_LOOP                         0000006D
 MC1OUT                            00000000
 MC2OUT                            00000001
 MFOEN                             00000005
@@ -1304,6 +1505,12 @@ MODE1                             00000001
 MODE2                             00000002
 MODE3                             00000003
 MODE4                             00000004
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 27
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 MSK0                              00000000
 MSK1                              00000001
 MSK2                              00000002
@@ -1328,12 +1535,6 @@ NCH0                              00000000
 NCH1                              00000001
 NCH2                              00000002
 NCO1ACC                           0000058C
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 24
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 NCO1ACC0                          00000000
 NCO1ACC1                          00000001
 NCO1ACC10                         00000002
@@ -1363,6 +1564,12 @@ NCO1IE                            00000004
 NCO1IF                            00000004
 NCO1INC                           0000058F
 NCO1INC0                          00000000
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 28
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 NCO1INC1                          00000001
 NCO1INC10                         00000002
 NCO1INC11                         00000003
@@ -1387,12 +1594,6 @@ NCO1INCL                          0000058F
 NCO1INCU                          00000591
 NCOIE                             00000004
 NCOIF                             00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 25
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 NCOMD                             00000007
 NDIV0                             00000000
 NDIV1                             00000001
@@ -1411,15 +1612,23 @@ NOT_POR                           00000001
 NOT_RI                            00000002
 NOT_RMCLR                         00000003
 NOT_RWDT                          00000004
+NOT_START_BYTE                    00000082
 NOT_SYNC                          00000002
 NOT_T1SYNC                        00000002
 NOT_TO                            00000004
 NOT_W                             00000002
 NOT_WDTWV                         00000005
 NOT_WRITE                         00000002
+NO_FERR                           00000075
 NO_TMR0IF                         00000011
 NSS                               00000000
 NVMADR                            0000081A
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 29
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 NVMADRH                           0000081B
 NVMADRH0                          00000000
 NVMADRH1                          00000001
@@ -1446,12 +1655,6 @@ NVMDATH1                          00000001
 NVMDATH2                          00000002
 NVMDATH3                          00000003
 NVMDATH4                          00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 26
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 NVMDATH5                          00000005
 NVMDATL                           0000081C
 NVMDATL0                          00000000
@@ -1479,6 +1682,12 @@ ODCC4                             00000004
 ODCC5                             00000005
 ODCONA                            00001F3A
 ODCONC                            00001F50
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 30
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 OE1                               00000005
 OE2                               00000004
 OERR                              00000001
@@ -1505,12 +1714,6 @@ OUT_CLC2CON                       00000005
 OUT_CLC3CON                       00000005
 OUT_CLC4CON                       00000005
 OUT_CM1CON0                       00000006
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 27
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 OUT_CM2CON0                       00000006
 OUT_PWM3CON                       00000005
 OUT_PWM4CON                       00000005
@@ -1538,6 +1741,12 @@ PIE2                              00000718
 PIE3                              00000719
 PIE4                              0000071A
 PIE5                              0000071B
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 31
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 PIE6                              0000071C
 PIE7                              0000071D
 PIR0                              0000070C
@@ -1564,12 +1773,6 @@ POL_CLC2POL                       00000007
 POL_CLC3POL                       00000007
 POL_CLC4POL                       00000007
 POL_CM1CON0                       00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 28
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 POL_CM2CON0                       00000004
 POL_PWM3CON                       00000004
 POL_PWM4CON                       00000004
@@ -1597,6 +1800,12 @@ PSCNT3                            00000003
 PSCNT4                            00000004
 PSCNT5                            00000005
 PSCNT6                            00000006
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 32
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 PSCNT7                            00000007
 PSCNT8                            00000000
 PSCNT9                            00000001
@@ -1623,12 +1832,6 @@ PWM3OUT                           00000005
 PWM3POL                           00000004
 PWM4CON                           0000031A
 PWM4DC                            00000318
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 29
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 PWM4DC0                           00000006
 PWM4DC1                           00000007
 PWM4DC2                           00000000
@@ -1656,6 +1859,12 @@ PWM5DC5                           00000003
 PWM5DC6                           00000004
 PWM5DC7                           00000005
 PWM5DC8                           00000006
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 33
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 PWM5DC9                           00000007
 PWM5DCH                           0000031D
 PWM5DCL                           0000031C
@@ -1682,12 +1891,6 @@ PWM6MD                            00000005
 PWM6OUT                           00000005
 PWM6POL                           00000004
 PWMPW0                            00000006
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 30
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 PWMPW1                            00000007
 PWMPW2                            00000000
 PWMPW3                            00000001
@@ -1715,6 +1918,12 @@ RA2                               00000002
 RA2PPS                            00001F12
 RA2PPS0                           00000000
 RA2PPS1                           00000001
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 34
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 RA2PPS2                           00000002
 RA2PPS3                           00000003
 RA2PPS4                           00000004
@@ -1741,12 +1950,6 @@ RA5PPS3                           00000003
 RA5PPS4                           00000004
 RC0                               00000000
 RC0PPS                            00001F20
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 31
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 RC0PPS0                           00000000
 RC0PPS1                           00000001
 RC0PPS2                           00000002
@@ -1774,6 +1977,12 @@ RC3                               00000003
 RC3PPS                            00001F23
 RC3PPS0                           00000000
 RC3PPS1                           00000001
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 35
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 RC3PPS2                           00000002
 RC3PPS3                           00000003
 RC3PPS4                           00000004
@@ -1797,15 +2006,16 @@ RCREG                             00000119
 RCREG1                            00000119
 RCSTA                             0000011D
 RCSTA1                            0000011D
+RCV_CNT_0                         0000008D
+RCV_CNT_1                         0000008E
+RCV_CNT_2                         00000093
+RCV_CNT_3                         000000A4
+RCV_CNT_4                         000000A9
+RCV_CNT_5                         000000AD
+RCV_CNT_6                         000000B2
 RD                                00000000
 RD16                              00000001
 READ_WRITE                        00000002
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 32
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 REN                               00000006
 ROI                               00000005
 RSEL0                             00000000
@@ -1824,6 +2034,14 @@ RX9                               00000006
 RX9D                              00000000
 R_NOT_W                           00000002
 R_W                               00000002
+RcvCnt                            00000006
+Rx                                00000007
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 36
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 S                                 00000003
 SBCDE                             00000002
 SBOREN                            00000007
@@ -1859,12 +2077,6 @@ SPEN                              00000007
 SREN                              00000005
 SSP1ADD                           0000018D
 SSP1BUF                           0000018C
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 33
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 SSP1CLKPPS                        00001EC5
 SSP1CLKPPS0                       00000000
 SSP1CLKPPS1                       00000001
@@ -1883,6 +2095,12 @@ SSP1DATPPS3                       00000003
 SSP1DATPPS4                       00000004
 SSP1DATPPS5                       00000005
 SSP1IE                            00000000
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 37
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 SSP1IF                            00000000
 SSP1MSK                           0000018E
 SSP1SSPPS                         00001EC7
@@ -1918,12 +2136,6 @@ STRA                              00000000
 STRB                              00000001
 STRC                              00000002
 STRD                              00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 34
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 SWDTEN                            00000000
 SYNC_CM1CON0                      00000000
 SYNC_CM2CON0                      00000000
@@ -1942,6 +2154,12 @@ T0CKIPPS4                         00000004
 T0CKIPPS5                         00000005
 T0CKPS0                           00000000
 T0CKPS1                           00000001
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 38
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 T0CKPS2                           00000002
 T0CKPS3                           00000003
 T0CON0                            0000059E
@@ -1977,12 +2195,6 @@ T1CKIPPS5                         00000005
 T1CKPS0                           00000004
 T1CKPS1                           00000005
 T1CLK                             00000211
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 35
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 T1CON                             0000020E
 T1CS0                             00000000
 T1CS1                             00000001
@@ -2001,6 +2213,12 @@ T1GPPS2                           00000002
 T1GPPS3                           00000003
 T1GPPS4                           00000004
 T1GPPS5                           00000005
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 39
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 T1GSPM                            00000004
 T1GSS0                            00000000
 T1GSS1                            00000001
@@ -2036,12 +2254,6 @@ T2MODE3                           00000003
 T2MODE4                           00000004
 T2ON                              00000007
 T2OUTPS0                          00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 36
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 T2OUTPS1                          00000001
 T2OUTPS2                          00000002
 T2OUTPS3                          00000003
@@ -2060,6 +2272,12 @@ TMR0H1                            00000001
 TMR0H2                            00000002
 TMR0H3                            00000003
 TMR0H4                            00000004
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 40
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 TMR0H5                            00000005
 TMR0H6                            00000006
 TMR0H7                            00000007
@@ -2095,12 +2313,6 @@ TMR19                             00000001
 TMR1CLK                           00000211
 TMR1GATE                          00000210
 TMR1GIE                           00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 37
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 TMR1GIF                           00000000
 TMR1H                             0000020D
 TMR1H0                            00000000
@@ -2119,6 +2331,12 @@ TMR1L1                            00000001
 TMR1L2                            00000002
 TMR1L3                            00000003
 TMR1L4                            00000004
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 41
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 TMR1L5                            00000005
 TMR1L6                            00000006
 TMR1L7                            00000007
@@ -2154,12 +2372,6 @@ TRISA2                            00000002
 TRISA4                            00000004
 TRISA5                            00000005
 TRISC                             00000014
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 38
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 TRISC0                            00000000
 TRISC1                            00000001
 TRISC2                            00000002
@@ -2178,6 +2390,12 @@ TX1CKPPS4                         00000004
 TX1CKPPS5                         00000005
 TX1IE                             00000004
 TX1IF                             00000004
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 42
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 TX1REG                            0000011A
 TX1STA                            0000011E
 TX9                               00000006
@@ -2190,10 +2408,11 @@ TXSTA1                            0000011E
 Tmp1                              00000000
 Tmp2                              00000001
 Tmp3                              00000002
+TurnOn0                           0000002A
+TurnOn1                           0000002B
 UA                                00000001
 UART1MD                           00000006
 UNDER_10                          00000026
-Val                               00000003
 W                                 00000000
 WAIT                              0000002A
 WCOL                              00000007
@@ -2213,12 +2432,6 @@ WDTPSCNT10                        00000002
 WDTPSCNT11                        00000003
 WDTPSCNT12                        00000004
 WDTPSCNT13                        00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 39
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 WDTPSCNT14                        00000006
 WDTPSCNT15                        00000007
 WDTPSCNT16                        00000000
@@ -2236,6 +2449,12 @@ WDTPSL                            0000080E
 WDTSEN                            00000000
 WDTSTATE                          00000002
 WDTTMR                            00000810
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 43
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 WDTTMR0                           00000003
 WDTTMR1                           00000004
 WDTTMR2                           00000005
@@ -2272,12 +2491,6 @@ ZCDIE                             00000006
 ZCDIF                             00000006
 ZCDINTN                           00000000
 ZCDINTP                           00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 40
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 ZCDMD                             00000000
 ZCDOUT                            00000005
 ZCDPOL                            00000004
@@ -2295,6 +2508,12 @@ _BBSIZE_BB8K                      00003FFB
 _BOREN_NSLEEP                     00003FBF
 _BOREN_OFF                        00003F3F
 _BOREN_ON                         00003FFF
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 44
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 _BOREN_SBOREN                     00003F7F
 _BORV_HI                          00003DFF
 _BORV_LO                          00003FFF
@@ -2331,12 +2550,6 @@ _LVP_ON                           00003FFF
 _MCLRE_OFF                        00003FFE
 _MCLRE_ON                         00003FFF
 _PPS1WAY_OFF                      000037FF
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 41
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 _PPS1WAY_ON                       00003FFF
 _PWRTE_OFF                        00003FFF
 _PWRTE_ON                         00003FFD
@@ -2354,6 +2567,12 @@ _STVREN_ON                        00003FFF
 _WDTCCS_HFINTOSC                  00000FFF
 _WDTCCS_LFINTOSC                  000007FF
 _WDTCCS_Reserved                  000017FF
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 45
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 _WDTCCS_SC                        00003FFF
 _WDTCPS_WDTCPS_0                  00003FE0
 _WDTCPS_WDTCPS_1                  00003FE1
@@ -2390,12 +2609,6 @@ _WDTCPS_WDTCPS_9                  00003FE9
 _WDTCWS_WDTCWS_0                  000038FF
 _WDTCWS_WDTCWS_1                  000039FF
 _WDTCWS_WDTCWS_2                  00003AFF
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-4-2019  12:50:34         PAGE 42
-
-
-SYMBOL TABLE
-  LABEL                             VALUE 
-
 _WDTCWS_WDTCWS_3                  00003BFF
 _WDTCWS_WDTCWS_4                  00003CFF
 _WDTCWS_WDTCWS_5                  00003DFF
@@ -2413,6 +2626,12 @@ _WRTC_OFF                         00003FFF
 _WRTC_ON                          00003DFF
 _WRTSAF_OFF                       00003FFF
 _WRTSAF_ON                        000037FF
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 46
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
 _ZCD_OFF                          00003FFF
 _ZCD_ON                           00003BFF
 __16LF15323                       00000001
@@ -2425,6 +2644,6 @@ sendInt                           0000002F
 
 Errors   :     0
 Warnings :     0 reported,     0 suppressed
-Messages :    26 reported,     0 suppressed
+Messages :    33 reported,     0 suppressed
 
 

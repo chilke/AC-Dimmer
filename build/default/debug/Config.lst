@@ -1,4 +1,4 @@
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  1
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -38,7 +38,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00020 
 179C 39FF 3F9F 3FFF 3F00021    END
        FF 
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  2
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  2
 
 
 SYMBOL TABLE
@@ -97,7 +97,7 @@ ADRESH6                           00000006
 ADRESH7                           00000007
 ADRESL                            0000009B
 ADRESL0                           00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  3
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  3
 
 
 SYMBOL TABLE
@@ -156,7 +156,7 @@ C1EN                              00000007
 C1HYS                             00000001
 C1IE                              00000000
 C1IF                              00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  4
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  4
 
 
 SYMBOL TABLE
@@ -215,7 +215,7 @@ CCP1PPS3                          00000003
 CCP1PPS4                          00000004
 CCP1PPS5                          00000005
 CCP2CAP                           00000313
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  5
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  5
 
 
 SYMBOL TABLE
@@ -274,7 +274,7 @@ CLC1GLS2                          00001E18
 CLC1GLS3                          00001E19
 CLC1IE                            00000004
 CLC1IF                            00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  6
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  6
 
 
 SYMBOL TABLE
@@ -333,7 +333,7 @@ CLCIN0PPS2                        00000002
 CLCIN0PPS3                        00000003
 CLCIN0PPS4                        00000004
 CLCIN0PPS5                        00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  7
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  7
 
 
 SYMBOL TABLE
@@ -392,7 +392,7 @@ CPUDOZE                           0000088C
 CREN                              00000004
 CS                                00000000
 CS0                               00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  8
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  8
 
 
 SYMBOL TABLE
@@ -451,7 +451,7 @@ CWG1OVRB                          00000005
 CWG1OVRC                          00000006
 CWG1OVRD                          00000007
 CWG1POLA                          00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE  9
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE  9
 
 
 SYMBOL TABLE
@@ -510,7 +510,7 @@ DAC1CON0                          0000090E
 DAC1CON1                          0000090F
 DAC1EN                            00000007
 DAC1MD                            00000006
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 10
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 10
 
 
 SYMBOL TABLE
@@ -569,7 +569,7 @@ FREE                              00000004
 FSR0                              00000004
 FSR0H                             00000005
 FSR0H_SHAD                        00001FE9
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 11
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 11
 
 
 SYMBOL TABLE
@@ -628,7 +628,7 @@ HFTUN4                            00000004
 HFTUN5                            00000005
 HYS                               00000001
 I2C_DAT                           00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 12
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 12
 
 
 SYMBOL TABLE
@@ -687,7 +687,7 @@ IOCAF4                            00000004
 IOCAF5                            00000005
 IOCAN                             00001F3E
 IOCAN0                            00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 13
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 13
 
 
 SYMBOL TABLE
@@ -746,7 +746,7 @@ LC1D1S0                           00000000
 LC1D1S1                           00000001
 LC1D1S2                           00000002
 LC1D1S3                           00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 14
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 14
 
 
 SYMBOL TABLE
@@ -805,7 +805,7 @@ LC1G4D1T                          00000001
 LC1G4D2N                          00000002
 LC1G4D2T                          00000003
 LC1G4D3N                          00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 15
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 15
 
 
 SYMBOL TABLE
@@ -864,7 +864,7 @@ LC2G2D3N                          00000004
 LC2G2D3T                          00000005
 LC2G2D4N                          00000006
 LC2G2D4T                          00000007
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 16
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 16
 
 
 SYMBOL TABLE
@@ -923,7 +923,7 @@ LC3D4S5                           00000005
 LC3EN                             00000007
 LC3G1D1N                          00000000
 LC3G1D1T                          00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 17
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 17
 
 
 SYMBOL TABLE
@@ -982,7 +982,7 @@ LC4D2S2                           00000002
 LC4D2S3                           00000003
 LC4D2S4                           00000004
 LC4D2S5                           00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 18
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 18
 
 
 SYMBOL TABLE
@@ -1041,7 +1041,7 @@ LC4INTN                           00000003
 LC4INTP                           00000004
 LC4MODE0                          00000000
 LC4MODE1                          00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 19
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 19
 
 
 SYMBOL TABLE
@@ -1100,7 +1100,7 @@ NCO1ACC1                          00000001
 NCO1ACC10                         00000002
 NCO1ACC11                         00000003
 NCO1ACC12                         00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 20
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 20
 
 
 SYMBOL TABLE
@@ -1159,7 +1159,7 @@ NDIV0                             00000000
 NDIV1                             00000001
 NDIV2                             00000002
 NDIV3                             00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 21
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 21
 
 
 SYMBOL TABLE
@@ -1218,7 +1218,7 @@ NVMDATL0                          00000000
 NVMDATL1                          00000001
 NVMDATL2                          00000002
 NVMDATL3                          00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 22
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 22
 
 
 SYMBOL TABLE
@@ -1277,7 +1277,7 @@ OUT_PWM4CON                       00000005
 OUT_PWM5CON                       00000005
 OUT_PWM6CON                       00000005
 OVRA                              00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 23
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 23
 
 
 SYMBOL TABLE
@@ -1336,7 +1336,7 @@ POL_PWM4CON                       00000004
 POL_PWM5CON                       00000004
 POL_PWM6CON                       00000004
 PORTA                             0000000C
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 24
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 24
 
 
 SYMBOL TABLE
@@ -1395,7 +1395,7 @@ PWM4DC2                           00000000
 PWM4DC3                           00000001
 PWM4DC4                           00000002
 PWM4DC5                           00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 25
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 25
 
 
 SYMBOL TABLE
@@ -1454,7 +1454,7 @@ PWMPW3                            00000001
 PWMPW4                            00000002
 PWMPW5                            00000003
 PWMPW6                            00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 26
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 26
 
 
 SYMBOL TABLE
@@ -1513,7 +1513,7 @@ RC0PPS2                           00000002
 RC0PPS3                           00000003
 RC0PPS4                           00000004
 RC1                               00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 27
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 27
 
 
 SYMBOL TABLE
@@ -1572,7 +1572,7 @@ RSEL0                             00000000
 RSEL1                             00000001
 RSEL2                             00000002
 RSEL3                             00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 28
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 28
 
 
 SYMBOL TABLE
@@ -1631,7 +1631,7 @@ SSP1CLKPPS1                       00000001
 SSP1CLKPPS2                       00000002
 SSP1CLKPPS3                       00000003
 SSP1CLKPPS4                       00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 29
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 29
 
 
 SYMBOL TABLE
@@ -1690,7 +1690,7 @@ SYNC_TX1STA                       00000004
 SYNC_TXSTA                        00000004
 SYNC_TXSTA1                       00000004
 SYSCMD                            00000007
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 30
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 30
 
 
 SYMBOL TABLE
@@ -1749,7 +1749,7 @@ T1CS2                             00000002
 T1CS3                             00000003
 T1GATE                            00000210
 T1GCON                            0000020F
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 31
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 31
 
 
 SYMBOL TABLE
@@ -1808,7 +1808,7 @@ T2PR                              0000028D
 T2PSYNC                           00000007
 T2RSEL0                           00000000
 T2RSEL1                           00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 32
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 32
 
 
 SYMBOL TABLE
@@ -1867,7 +1867,7 @@ TMR1H1                            00000001
 TMR1H2                            00000002
 TMR1H3                            00000003
 TMR1H4                            00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 33
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 33
 
 
 SYMBOL TABLE
@@ -1926,7 +1926,7 @@ TRISC3                            00000003
 TRISC4                            00000004
 TRISC5                            00000005
 TRMT                              00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 34
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 34
 
 
 SYMBOL TABLE
@@ -1985,7 +1985,7 @@ WDTPSCNT7                         00000007
 WDTPSCNT8                         00000000
 WDTPSCNT9                         00000001
 WDTPSH                            0000080F
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 35
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 35
 
 
 SYMBOL TABLE
@@ -2044,7 +2044,7 @@ _BBSIZE_BB32K                     00003FF9
 _BBSIZE_BB4K                      00003FFC
 _BBSIZE_BB512                     00003FFF
 _BBSIZE_BB64K                     00003FF8
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 36
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 36
 
 
 SYMBOL TABLE
@@ -2103,7 +2103,7 @@ _RSTOSC_Reserved                  00003FBF
 _SAFEN_OFF                        00003FFF
 _SAFEN_ON                         00003FEF
 _STVREN_OFF                       00002FFF
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 37
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 37
 
 
 SYMBOL TABLE
@@ -2162,7 +2162,7 @@ _WRTAPP_OFF                       00003FFF
 _WRTAPP_ON                        00003F7F
 _WRTB_OFF                         00003FFF
 _WRTB_ON                          00003EFF
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-3-2019  22:22:33         PAGE 38
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   7-22-2019  20:44:41         PAGE 38
 
 
 SYMBOL TABLE
