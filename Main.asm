@@ -14,7 +14,10 @@ TurnOn0		res 1 ;29
 TurnOn1		res 1 ;30
 
 CurrentDelay	res 1 ;31
-    
+	
+Compare16a	res 2 ;32
+Compare16b	res 2 ;34
+	
 SHARED_VARS udata_shr
 Tmp0	res 1
 Tmp1	res 1
@@ -25,6 +28,24 @@ CmdValL	res 1
 RcvCnt	res 1
 Rx	res 1
 
+;Load16 - load the 16 bit literal h,l into v
+;Bank for v must be selected
+Load16 macro Va, LaH, LaL
+    movlw LaH
+    movwf Va
+    movlw LaL
+    movwf Va+.1
+    endm
+    
+;Copy16 - copy the 16 bit variable Vb into Va
+;Va and Vb must be in the same bank and it must be selected
+Copy16 macro Va, Vb
+    movf Vb, w
+    movwf Va
+    movf Vb+.1, w
+    movwf Va+.1
+    endm
+	
 RESET_VECT CODE 0x0000
    goto START
    
@@ -124,6 +145,56 @@ ALPHA_HEX_H:
     addlw .10 ; Add 10 for A-F, w already contained h - 'A'
     return
 ;End hexToNibble
+
+;compare16s
+;Parameters passed in Compare16a/b
+;Return value passed in w using CMP_16_* bits
+;Must have Compare16a/b bank selected when calling
+;Compares a to b so a > b = CMP_16_GT and a < b = CMP_16_LT
+compare16s:
+    movf Compare16b, w
+    subwf Compare16a, w ;w = Compare16aH-Compare16bH
+    btfss STATUS, Z
+    goto CMP_16_NE ;Zero clear means highs weren't equal
+    movf Compare16b+.1, w
+    subwf Compare16a+.1, w ;w = Compare16aL-Compare16bL
+    btfsc STATUS, Z
+    retlw CMP_16_EQ ;Zero now means highs and lows both equal
+CMP_16_NE:
+    btfsc STATUS, C
+    retlw CMP_16_GT ;Carry set means no borrow so a > b
+    retlw CMP_16_LT ;Carry clear means borrow so b > a
+    
+;Cmp16VtoV - Compare 16 bit var to 16 bit var
+;Va and Vb must be in same bank as Compare16a/b and that bank must be selected
+Cmp16VtoV macro Va, Vb
+    Copy16 Compare16a, Va
+    Copy16 Compare16b, Vb
+    call compare16s
+    endm
+    
+;Cmp16VtoL - Compare 16 bit var to 16 bit literal
+;Va must be in the same bank as Compare16a/b and that bank must be selected
+Cmp16VtoL macro Va, LbH, LbL
+    Copy16 Compare16a, Va
+    Load16 Compare16b, LbH, LbL
+    call compare16s
+    endm
+    
+;Cmp16LtoL - Compare 16 bit literal to 16 bit literal
+;Compare16a/b bank must be selected
+Cmp16LtoL macro LaH, LaL, LbH, LbL
+    Load16 Compare16a, LaH, LaL
+    Load16 Compare16b, LbH, LbL
+    call compare16s
+    endm
+    
+;updateDelays
+;No parameters
+;No return value
+updateDelays:
+;First check if either delay is over max and set to max
+    return
     
 START:
     ;Setup analog select registers
@@ -195,6 +266,44 @@ START:
     bsf PIE2, ZCDIE
     
     clrf RcvCnt
+    
+    banksel Compare16a
+    Cmp16LtoL 0x12, 0x34, 0x43, 0x21
+    nop ;w should be 4
+    
+    clrf Compare16a
+    clrf Compare16a+.1
+    clrf Compare16b
+    clrf Compare16b+.1
+    
+    Load16 Ch0Delay, 0x43, 0x21
+    Cmp16VtoL Ch0Delay, 0x12, 0x34
+    nop ;w should be 1
+    
+    clrf Compare16a
+    clrf Compare16a+.1
+    clrf Compare16b
+    clrf Compare16b+.1
+    
+    Cmp16LtoL 0x43, 0x21, 0x43, 0x21
+    nop ;w should be 2
+    
+    clrf Compare16a
+    clrf Compare16a+.1
+    clrf Compare16b
+    clrf Compare16b+.1
+    
+    Load16 Ch1Delay, 0x43, 0x20
+    Cmp16VtoV Ch0Delay, Ch1Delay
+    nop ;w should be 1
+    
+    clrf Compare16a
+    clrf Compare16a+.1
+    clrf Compare16b
+    clrf Compare16b+.1
+    
+    Cmp16LtoL 0x43, 0x21, 0x43, 0x22
+    nop ;w should be 4
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
