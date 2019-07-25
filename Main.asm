@@ -23,18 +23,17 @@ Tmp0	res 1
 Tmp1	res 1
 Tmp2	res 1
 Cmd	res 1
-CmdValH	res 1
-CmdValL	res 1
+CmdVal	res 2
 RcvCnt	res 1
 Rx	res 1
 
 ;Load16 - load the 16 bit literal h,l into v
 ;Bank for v must be selected
-Load16 macro Va, LaH, LaL
-    movlw LaH
-    movwf Va
-    movlw LaL
+Load16 macro Va, La
+    movlw high La
     movwf Va+.1
+    movlw low La
+    movwf Va
     endm
     
 ;Copy16 - copy the 16 bit variable Vb into Va
@@ -152,12 +151,12 @@ ALPHA_HEX_H:
 ;Must have Compare16a/b bank selected when calling
 ;Compares a to b so a > b = CMP_16_GT and a < b = CMP_16_LT
 compare16s:
-    movf Compare16b, w
-    subwf Compare16a, w ;w = Compare16aH-Compare16bH
+    movf Compare16b+.1, w
+    subwf Compare16a+.1, w ;w = Compare16aH-Compare16bH
     btfss STATUS, Z
     goto CMP_16_NE ;Zero clear means highs weren't equal
-    movf Compare16b+.1, w
-    subwf Compare16a+.1, w ;w = Compare16aL-Compare16bL
+    movf Compare16b, w
+    subwf Compare16a, w ;w = Compare16aL-Compare16bL
     btfsc STATUS, Z
     retlw CMP_16_EQ ;Zero now means highs and lows both equal
 CMP_16_NE:
@@ -175,17 +174,17 @@ Cmp16VtoV macro Va, Vb
     
 ;Cmp16VtoL - Compare 16 bit var to 16 bit literal
 ;Va must be in the same bank as Compare16a/b and that bank must be selected
-Cmp16VtoL macro Va, LbH, LbL
+Cmp16VtoL macro Va, Lb
     Copy16 Compare16a, Va
-    Load16 Compare16b, LbH, LbL
+    Load16 Compare16b, Lb
     call compare16s
     endm
     
 ;Cmp16LtoL - Compare 16 bit literal to 16 bit literal
 ;Compare16a/b bank must be selected
-Cmp16LtoL macro LaH, LaL, LbH, LbL
-    Load16 Compare16a, LaH, LaL
-    Load16 Compare16b, LbH, LbL
+Cmp16LtoL macro La, Lb
+    Load16 Compare16a, La
+    Load16 Compare16b, Lb
     call compare16s
     endm
     
@@ -267,44 +266,6 @@ START:
     
     clrf RcvCnt
     
-    banksel Compare16a
-    Cmp16LtoL 0x12, 0x34, 0x43, 0x21
-    nop ;w should be 4
-    
-    clrf Compare16a
-    clrf Compare16a+.1
-    clrf Compare16b
-    clrf Compare16b+.1
-    
-    Load16 Ch0Delay, 0x43, 0x21
-    Cmp16VtoL Ch0Delay, 0x12, 0x34
-    nop ;w should be 1
-    
-    clrf Compare16a
-    clrf Compare16a+.1
-    clrf Compare16b
-    clrf Compare16b+.1
-    
-    Cmp16LtoL 0x43, 0x21, 0x43, 0x21
-    nop ;w should be 2
-    
-    clrf Compare16a
-    clrf Compare16a+.1
-    clrf Compare16b
-    clrf Compare16b+.1
-    
-    Load16 Ch1Delay, 0x43, 0x20
-    Cmp16VtoV Ch0Delay, Ch1Delay
-    nop ;w should be 1
-    
-    clrf Compare16a
-    clrf Compare16a+.1
-    clrf Compare16b
-    clrf Compare16b+.1
-    
-    Cmp16LtoL 0x43, 0x21, 0x43, 0x22
-    nop ;w should be 4
-    
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
 ;Check if we have a receive byte
@@ -319,7 +280,13 @@ MAIN_LOOP:
 ;Has FERR, read byte, reset receive count, send NACK
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, f
+    movf Rx, f
+    btfss STATUS, Z
     goto CMD_FAILED
+    movf RcvCnt, f
+    btfss STATUS, Z
+    goto CMD_FAILED
+    goto MAIN_LOOP
 NO_FERR:
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, w
@@ -352,7 +319,12 @@ NOT_START_BYTE:
 ;Default RcvCnt 6 or 7 means we've received too much, should never happen
 RCV_CNT_0:
     ;If we got here we know this isn't a start byte
+    ;Check for break character
+    movf Rx, f
+    btfss STATUS, Z
     goto CMD_FAILED
+    clrf RcvCnt
+    goto MAIN_LOOP
 RCV_CNT_1:
     ;This is the high nibble of the command byte
     movf Rx, w
@@ -376,27 +348,27 @@ RCV_CNT_3:
     ;This is the high nibble of the high param value
     movf Rx, w
     call hexToNibble
-    movwf CmdValH
-    swapf CmdValH, f
+    movwf CmdVal+.1
+    swapf CmdVal+.1, f
     goto MAIN_LOOP
 RCV_CNT_4:
     ;This is the low nibble of the high param value
     movf Rx, w
     call hexToNibble
-    addwf CmdValH, f
+    addwf CmdVal+.1, f
     goto MAIN_LOOP
 RCV_CNT_5:
     ;This is the high nibble of the low param value
     movf Rx, w
     call hexToNibble
-    movwf CmdValL
-    swapf CmdValL, f
+    movwf CmdVal
+    swapf CmdVal, f
     goto MAIN_LOOP
 RCV_CNT_6:
     ;This is the low nibble of the low param value
     movf Rx, w
     call hexToNibble
-    addwf CmdValL, f
+    addwf CmdVal, f
 ;We've already validated Cmd is <= CMD_MAX, so let's just start processing
     movf Cmd, w
 ;Might as well do this now since all paths ahead need it
@@ -406,18 +378,18 @@ RCV_CNT_6:
 ;if more commands are added, change this to goto SET_CH1
 SET_CH1:
     ; banksel Ch1Delay ; Bank 0 already set above
-    movf CmdValH, w
-    movwf Ch1Delay
-    movf CmdValL, w
-    movwf Ch1Delay+.1
+    Cmp16VtoL CmdVal, MAX_DELAY
+    btfss WREG, CMP_16_LT_BIT
+    goto CMD_FAILED
+    Copy16 Ch1Delay, CmdVal
     ;TODO call Update Delays
     goto CMD_PROCESSED
 SET_CH0:
     ; banksel Ch0Delay ; Bank 0 already set above
-    movf CmdValH, w
-    movwf Ch0Delay
-    movf CmdValL, w
-    movwf Ch0Delay+.1
+    Cmp16VtoL CmdVal, MAX_DELAY
+    btfss WREG, CMP_16_LT_BIT
+    goto CMD_FAILED
+    Copy16 Ch0Delay, CmdVal
     ;TODO call Update Delays
     goto CMD_PROCESSED
 ;No receive byte, check for overflow error here

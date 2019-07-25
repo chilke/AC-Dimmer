@@ -6,6 +6,8 @@
 #define CMP_16_GT_BIT 0
 #define CMP_16_EQ_BIT 1
 #define CMP_16_LT_BIT 2
+
+#define MAX_DELAY .8192
     
 #define DELAY_MAX_H 
     
