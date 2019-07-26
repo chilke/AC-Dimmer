@@ -11,21 +11,25 @@ Delay1		res 2 ;26
 Delay2		res 2 ;28
 
 TurnOn0		res 1 ;29
-TurnOn1		res 1 ;30
+TurnOn1		res 1 ;2A
 
-CurrentDelay	res 1 ;31
+AlwaysOn	res 1 ;2B
+		
+CurrentDelay	res 1 ;2C
 	
-Compare16a	res 2 ;32
-Compare16b	res 2 ;34
+TurnOffDelay	res 1 ;2D
+	
+Tmp16a		res 2 ;2E
+Tmp16b		res 2 ;30
 	
 SHARED_VARS udata_shr
-Tmp0	res 1
-Tmp1	res 1
-Tmp2	res 1
-Cmd	res 1
-CmdVal	res 2
-RcvCnt	res 1
-Rx	res 1
+Tmp0	res 1 ;1
+Tmp1	res 1 ;2
+Tmp2	res 1 ;3
+Cmd	res 1 ;4
+CmdVal	res 2 ;6
+RcvCnt	res 1 ;7
+Rx	res 1 ;8
 
 ;Load16 - load the 16 bit literal h,l into v
 ;Bank for v must be selected
@@ -146,17 +150,17 @@ ALPHA_HEX_H:
 ;End hexToNibble
 
 ;compare16s
-;Parameters passed in Compare16a/b
+;Parameters passed in Tmp16a/b
 ;Return value passed in w using CMP_16_* bits
-;Must have Compare16a/b bank selected when calling
+;Must have Tmp16a/b bank selected when calling
 ;Compares a to b so a > b = CMP_16_GT and a < b = CMP_16_LT
 compare16s:
-    movf Compare16b+.1, w
-    subwf Compare16a+.1, w ;w = Compare16aH-Compare16bH
+    movf Tmp16b+.1, w
+    subwf Tmp16a+.1, w ;w = Tmp16aH-Tmp16bH
     btfss STATUS, Z
     goto CMP_16_NE ;Zero clear means highs weren't equal
-    movf Compare16b, w
-    subwf Compare16a, w ;w = Compare16aL-Compare16bL
+    movf Tmp16b, w
+    subwf Tmp16a, w ;w = Tmp16aL-Tmp16bL
     btfsc STATUS, Z
     retlw CMP_16_EQ ;Zero now means highs and lows both equal
 CMP_16_NE:
@@ -165,34 +169,157 @@ CMP_16_NE:
     retlw CMP_16_LT ;Carry clear means borrow so b > a
     
 ;Cmp16VtoV - Compare 16 bit var to 16 bit var
-;Va and Vb must be in same bank as Compare16a/b and that bank must be selected
+;Va and Vb must be in same bank as Tmp16a/b and that bank must be selected
 Cmp16VtoV macro Va, Vb
-    Copy16 Compare16a, Va
-    Copy16 Compare16b, Vb
+    Copy16 Tmp16a, Va
+    Copy16 Tmp16b, Vb
     call compare16s
     endm
     
 ;Cmp16VtoL - Compare 16 bit var to 16 bit literal
-;Va must be in the same bank as Compare16a/b and that bank must be selected
+;Va must be in the same bank as Tmp16a/b and that bank must be selected
 Cmp16VtoL macro Va, Lb
-    Copy16 Compare16a, Va
-    Load16 Compare16b, Lb
+    Copy16 Tmp16a, Va
+    Load16 Tmp16b, Lb
     call compare16s
     endm
     
 ;Cmp16LtoL - Compare 16 bit literal to 16 bit literal
-;Compare16a/b bank must be selected
+;Tmp16a/b bank must be selected
 Cmp16LtoL macro La, Lb
-    Load16 Compare16a, La
-    Load16 Compare16b, Lb
+    Load16 Tmp16a, La
+    Load16 Tmp16b, Lb
     call compare16s
+    endm
+
+;Sub16ReVmV - Subtract 16 bit variable from 16 bit variable
+;Result is stored in R
+Sub16ReVmV macro R, Va, Vb
+    movf Vb, w
+    subwf Va, w
+    movwf R ;RL = VaL - VbL
+    movf Vb+.1, w
+    subwfb Va+.1, w
+    movwf R+.1 ;RH = VaH - VbH - B
+    endm
+    
+;Sub16ReLmV - Subtract 16 bit variable from 16 bit literal
+;Result is stored in R
+;Uses Tmp0
+Sub16ReLmV macro R, L, V
+    movlw low L
+    movwf Tmp0
+    movf V, w
+    subwf Tmp0, w
+    movwf R ;RL = LL - VL
+    movlw high L
+    movwf Tmp0
+    movf V+.1, w
+    subwfb Tmp0, w
+    movwf R+.1 ;RH = LH - VH - B
     endm
     
 ;updateDelays
 ;No parameters
 ;No return value
 updateDelays:
-;First check if either delay is over max and set to max
+    ;Disable interrupts
+    bcf INTCON, GIE
+    
+    ;Clear some stuff
+    banksel TurnOn0 ;Bank 0
+    clrf TurnOn0
+    clrf TurnOn1
+    clrf AlwaysOn
+    clrf Delay1
+    clrf Delay1+.1
+    clrf Delay2
+    clrf Delay2+.1
+    
+    ;If Ch0Delay == 0
+    Cmp16VtoL Ch0Delay, .0
+    btfss WREG, CMP_16_EQ_BIT
+    goto UD_CH0_NE_0
+    ;Ch0Delay == 0 so it is always on
+    bsf AlwaysOn, 0
+    ;If Ch1Delay == 0
+    Cmp16VtoL Ch1Delay, .0
+    btfss WREG, CMP_16_EQ_BIT
+    goto UD_CH1_NE_0
+    ;Ch1Delay == 0 so it is always on
+    bsf AlwaysOn, 1
+    ;Set single delay to max and we're done
+    Load16 Delay0, MAX_DELAY
+    goto UD_ENDING
+UD_CH1_NE_0:
+    ;Ch0Delay == 0 and Ch1Delay != 0
+    Copy16 Delay0, Ch1Delay
+    bsf TurnOn0, 1
+    Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
+    movlw .1
+    movwf TurnOffDelay
+    goto UD_ENDING
+UD_CH0_NE_0:
+    ;If Ch1Delay == 0
+    Cmp16VtoL Ch1Delay, .0
+    btfss WREG, CMP_16_EQ_BIT
+    goto UD_BOTH_NE_0
+    ;Ch1Delay == 0 so it is always on
+    bsf AlwaysOn, 1
+    ;Ch0Delay != 0 so setup delays
+    Copy16 Delay0, Ch0Delay
+    bsf TurnOn0, 0
+    Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
+    movlw .1
+    movwf TurnOffDelay
+    goto UD_ENDING
+UD_BOTH_NE_0:
+    ;If Ch0Delay == Ch1Delay
+    Cmp16VtoV Ch0Delay, Ch1Delay
+    btfss WREG, CMP_16_EQ_BIT
+    goto UD_CH0_NE_CH1
+    Copy16 Delay0, Ch0Delay
+    bsf TurnOn0, 0
+    bsf TurnOn1, 1
+    Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
+    movlw .1
+    movwf TurnOffDelay
+    goto UD_ENDING
+UD_CH0_NE_CH1:
+    ;WREG still contains results of CH0Delay cmp to Ch1Delay
+    btfss WREG, CMP_16_GT_BIT
+    goto UD_CH0_LT_CH1
+    ;Ch0Delay > Ch1Delay
+    Copy16 Delay0, Ch1Delay
+    bsf TurnOn0, 1
+    Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
+    bsf TurnOn1, 0
+    Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
+    goto UD_CH0_NE_CH1_ENDING
+UD_CH0_LT_CH1:
+    ;Ch1Delay > Ch0Delay
+    Copy16 Delay0, Ch0Delay
+    bsf TurnOn0, 0
+    Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
+    bsf TurnOn1, 1
+    Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
+UD_CH0_NE_CH1_ENDING:
+    movlw .2
+    movwf TurnOffDelay
+UD_ENDING:
+    ;Clear timer to ensure it won't immediately roll over
+    banksel TMR0H ;Bank 11
+    clrf TMR0H
+    clrf TMR0L
+    
+    ;Clear any interrupts which occurred while we were processing
+    banksel PIR0 ;Bank 14
+    bcf PIR0, TMR0IF
+    ;banksel PIR2 ;Bank 14
+    bcf PIR2, ZCDIF
+    
+    ;Finally reenable interrupts
+    bsf INTCON, GIE
     return
     
 START:
