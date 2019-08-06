@@ -1,4 +1,4 @@
-
+    
 #define CMP_16_GT 1
 #define CMP_16_EQ 2
 #define CMP_16_LT 4
@@ -19,4 +19,5 @@
 
 #define CMD_SET_CH0 .0
 #define CMD_SET_CH1 .1
-#define CMD_MAX .1
+#define CMD_ACTIVATE .2
+#define CMD_MAX .2

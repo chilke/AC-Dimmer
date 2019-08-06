@@ -1,35 +1,40 @@
-
+;TODO - Rewrite entire ISR from "test" version
+;TODO - Setup timer to run in uS
+;TODO - Define macro or at least #defines for channel ports and bits
+;TODO - Test pretty much everything
+    
+    
 #include "p16lf15323.inc"
 #include "AC-Dimmer.inc"
     
 BANK0_VARS udata 0x0020 ;20-6F
 Ch0Delay	res 2 ;20
 Ch1Delay	res 2 ;22
-
-Delay0		res 2 ;24
-Delay1		res 2 ;26
-Delay2		res 2 ;28
-
-TurnOn0		res 1 ;29
-TurnOn1		res 1 ;2A
-
-AlwaysOn	res 1 ;2B
+	
+TurnOffDelay	res 1 ;24
+	
+Tmp16a		res 2 ;25
+Tmp16b		res 2 ;27
 		
-CurrentDelay	res 1 ;2C
+Cmd		res 1 ;29
+CmdVal		res 2 ;2A
+RcvCnt		res 1 ;2C
+Rx		res 1 ;2D
 	
-TurnOffDelay	res 1 ;2D
-	
-Tmp16a		res 2 ;2E
-Tmp16b		res 2 ;30
-	
+		
 SHARED_VARS udata_shr
-Tmp0	res 1 ;1
-Tmp1	res 1 ;2
-Tmp2	res 1 ;3
-Cmd	res 1 ;4
-CmdVal	res 2 ;6
-RcvCnt	res 1 ;7
-Rx	res 1 ;8
+Tmp0		res 1 ;1
+Tmp1		res 1 ;2
+Tmp2		res 1 ;3
+	
+Delay0		res 2 ;5
+Delay1		res 2 ;7
+Delay2		res 2 ;9
+	
+TurnOn0		res 1 ;A
+TurnOn1		res 1 ;B
+AlwaysOn	res 1 ;C
+CurrentDelay	res 1 ;D
 
 ;Load16 - load the 16 bit literal h,l into v
 ;Bank for v must be selected
@@ -70,13 +75,13 @@ ISR:
 NO_TMR0IF:
    ;banksel PIR2 ; Bank 14 No way to get here w/o bank 14 selected
    btfss PIR2, ZCDIF
-   retfie ; TODO - Update to goto if further logic added
+   retfie
    bcf PIR2, ZCDIF
    banksel LATC ; Bank 0
    bcf LATC, LATC0
    banksel ZCDCON ; Bank 18
    btfss ZCDCON, ZCDOUT
-   retfie ; TODO - Update to goto if further logic added
+   retfie
    banksel LATC ; Bank 0
    bsf LATC, LATC0
    retfie
@@ -227,7 +232,7 @@ updateDelays:
     bcf INTCON, GIE
     
     ;Clear some stuff
-    banksel TurnOn0 ;Bank 0
+    ;banksel TurnOn0 ;Shared Bank
     clrf TurnOn0
     clrf TurnOn1
     clrf AlwaysOn
@@ -237,6 +242,7 @@ updateDelays:
     clrf Delay2+.1
     
     ;If Ch0Delay == 0
+    banksel Ch0Delay ;Bank 0
     Cmp16VtoL Ch0Delay, .0
     btfss WREG, CMP_16_EQ_BIT
     goto UD_CH0_NE_0
@@ -278,12 +284,19 @@ UD_BOTH_NE_0:
     Cmp16VtoV Ch0Delay, Ch1Delay
     btfss WREG, CMP_16_EQ_BIT
     goto UD_CH0_NE_CH1
+    Cmp16VtoL Ch0Delay, MAX_DELAY
+    btfsc WREG, CMP_16_EQ_BIT
+    goto UD_BOTH_MAX
     Copy16 Delay0, Ch0Delay
     bsf TurnOn0, 0
-    bsf TurnOn1, 1
+    bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
     movlw .1
     movwf TurnOffDelay
+    goto UD_ENDING
+UD_BOTH_MAX:
+    Load16 Delay0, MAX_DELAY
+    clrf TurnOffDelay
     goto UD_ENDING
 UD_CH0_NE_CH1:
     ;WREG still contains results of CH0Delay cmp to Ch1Delay
@@ -292,6 +305,9 @@ UD_CH0_NE_CH1:
     ;Ch0Delay > Ch1Delay
     Copy16 Delay0, Ch1Delay
     bsf TurnOn0, 1
+    Cmp16VtoL Ch0Delay, MAX_DELAY
+    btfsc WREG, CMP_16_EQ_BIT
+    goto UD_CH0_NE_CH1_MAX
     Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
     bsf TurnOn1, 0
     Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
@@ -300,6 +316,9 @@ UD_CH0_LT_CH1:
     ;Ch1Delay > Ch0Delay
     Copy16 Delay0, Ch0Delay
     bsf TurnOn0, 0
+    Cmp16VtoL Ch1Delay, MAX_DELAY
+    btfsc WREG, CMP_16_EQ_BIT
+    goto UD_CH0_NE_CH1_MAX
     Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
     bsf TurnOn1, 1
     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
@@ -321,6 +340,11 @@ UD_ENDING:
     ;Finally reenable interrupts
     bsf INTCON, GIE
     return
+UD_CH0_NE_CH1_MAX:
+    Sub16ReLmV Delay1, MAX_DELAY, Delay0
+    movlw .1
+    movwf TurnOffDelay
+    goto UD_ENDING
     
 START:
     ;Setup analog select registers
@@ -391,7 +415,14 @@ START:
     bsf PIE0, TMR0IE
     bsf PIE2, ZCDIE
     
+    banksel RcvCnt ;Bank 0
     clrf RcvCnt
+    
+    ;Set default delay values to ensure outputs turned off
+    banksel Ch0Delay
+    Load16 Ch0Delay, MAX_DELAY
+    Load16 Ch1Delay, MAX_DELAY
+    call updateDelays
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
@@ -407,6 +438,7 @@ MAIN_LOOP:
 ;Has FERR, read byte, reset receive count, send NACK
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, f
+    banksel Rx ;Bank 0
     movf Rx, f
     btfss STATUS, Z
     goto CMD_FAILED
@@ -417,6 +449,7 @@ MAIN_LOOP:
 NO_FERR:
     ;banksel RC1REG ; Bank 2 already selected
     movf RC1REG, w
+    banksel Rx ;Bank 0
     movwf Rx
     ;First check for Start Byte no matter RcvCnt
     movlw CMD_START
@@ -499,25 +532,35 @@ RCV_CNT_6:
 ;We've already validated Cmd is <= CMD_MAX, so let's just start processing
     movf Cmd, w
 ;Might as well do this now since all paths ahead need it
-    banksel Ch0Delay ; Bank 0
+    ;banksel Ch0Delay ; Bank 0 already set
     brw
     goto SET_CH0
-;if more commands are added, change this to goto SET_CH1
+    goto SET_CH1
+;if more commands are added, change this to goto ACTIVATE
+ACTIVATE:
+    call updateDelays
+    goto CMD_PROCESSED
 SET_CH1:
-    ; banksel Ch1Delay ; Bank 0 already set above
+    ;banksel Ch1Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
     btfss WREG, CMP_16_LT_BIT
     goto CMD_FAILED
     Copy16 Ch1Delay, CmdVal
-    ;TODO call Update Delays
+    movf Ch1Delay+.1, w
+    call sendInt
+    movf Ch1Delay, w
+    call sendInt
     goto CMD_PROCESSED
 SET_CH0:
-    ; banksel Ch0Delay ; Bank 0 already set above
+    ;banksel Ch0Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
     btfss WREG, CMP_16_LT_BIT
     goto CMD_FAILED
     Copy16 Ch0Delay, CmdVal
-    ;TODO call Update Delays
+    movf Ch0Delay+.1, w
+    call sendInt
+    movf Ch0Delay, w
+    call sendInt
     goto CMD_PROCESSED
 ;No receive byte, check for overflow error here
 CHECK_OERR:

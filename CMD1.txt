@@ -3,6 +3,6 @@
 wait 1 ms
 "00"
 wait 1 ms
-"20"
+"1F"
 wait 1 ms
-"00"
+"FF"
