@@ -1,3 +1,8 @@
+
+#define CH0_REG LATA
+#define CH1_REG LATA
+#define CH0_BIT LATA4
+#define CH1_BIT LATA5
     
 #define CMP_16_GT 1
 #define CMP_16_EQ 2

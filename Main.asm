@@ -1,8 +1,8 @@
-;TODO - Rewrite entire ISR from "test" version
-;TODO - Setup timer to run in uS
-;TODO - Define macro or at least #defines for channel ports and bits
 ;TODO - Test pretty much everything
-    
+;TODO - Refactor ports used to match 8 pin package
+;       EUSART shares ICSP pins RA0/RA1
+;       ZCD remains the same RA2
+;       CH0/1 remains the same RA4/RA5
     
 #include "p16lf15323.inc"
 #include "AC-Dimmer.inc"
@@ -11,15 +11,13 @@ BANK0_VARS udata 0x0020 ;20-6F
 Ch0Delay	res 2 ;20
 Ch1Delay	res 2 ;22
 	
-TurnOffDelay	res 1 ;24
-	
-Tmp16a		res 2 ;25
-Tmp16b		res 2 ;27
+Tmp16a		res 2 ;24
+Tmp16b		res 2 ;26
 		
-Cmd		res 1 ;29
-CmdVal		res 2 ;2A
-RcvCnt		res 1 ;2C
-Rx		res 1 ;2D
+Cmd		res 1 ;28
+CmdVal		res 2 ;29
+RcvCnt		res 1 ;2B
+Rx		res 1 ;2C
 	
 		
 SHARED_VARS udata_shr
@@ -35,6 +33,7 @@ TurnOn0		res 1 ;A
 TurnOn1		res 1 ;B
 AlwaysOn	res 1 ;C
 CurrentDelay	res 1 ;D
+TurnOffDelay	res 1 ;E
 
 ;Load16 - load the 16 bit literal h,l into v
 ;Bank for v must be selected
@@ -59,31 +58,65 @@ RESET_VECT CODE 0x0000
    
 ISR_VECT CODE 0x0004
 ISR:
-   banksel PIR0 ; Bank 14
-   btfss PIR0, TMR0IF
-   goto NO_TMR0IF
-   banksel TMR0H ; Bank 11
-   movlw 0xff
-   movwf TMR0H
-   movlw .11 ; 255-244
-   movwf TMR0L
-   banksel LATA ; Bank 0
-   movlw b'00100000'
-   xorwf LATA, f
-   banksel PIR0 ; Bank 14
-   bcf PIR0, TMR0IF
-NO_TMR0IF:
-   ;banksel PIR2 ; Bank 14 No way to get here w/o bank 14 selected
+   banksel PIR2 ;Bank 14
    btfss PIR2, ZCDIF
-   retfie
+   goto ISR_NO_ZCD
    bcf PIR2, ZCDIF
-   banksel LATC ; Bank 0
-   bcf LATC, LATC0
-   banksel ZCDCON ; Bank 18
-   btfss ZCDCON, ZCDOUT
+   banksel TMR0H ;Bank 11
+   movf Delay0+.1, w
+   movwf TMR0H
+   movf Delay0, w
+   movwf TMR0L
+   clrf CurrentDelay
    retfie
-   banksel LATC ; Bank 0
-   bsf LATC, LATC0
+ISR_NO_ZCD:
+   ;banksel PIR0 ;Bank 14
+   bcf PIR0, TMR0IF
+   movf CurrentDelay, w
+   incf CurrentDelay, f
+   banksel TMR0H
+   brw
+   goto ISR_CD_0
+   goto ISR_CD_1
+ISR_CD_2:
+   ;banksel TMR0H ;Bank 11
+   clrf TMR0H
+   clrf TMR0L
+   banksel CH0_REG ;Bank 0
+   btfss AlwaysOn, 0
+   bcf CH0_REG, CH0_BIT
+   btfss AlwaysOn, 1
+   bcf CH1_REG, CH1_BIT
+   retfie
+ISR_CD_1:
+   ;banksel TMR0H ;Bank 11
+   movf Delay2+.1, w
+   movwf TMR0H
+   movf Delay2, w
+   movwf TMR0L
+   banksel CH0_REG ;Bank 0
+   btfsc TurnOn1, 0
+   bsf CH0_REG, CH0_BIT
+   btfsc TurnOn1, 1
+   bsf CH1_REG, CH1_BIT
+   btfss TurnOffDelay, 1
+   retfie
+   btfss AlwaysOn, 0
+   bcf CH0_REG, CH0_BIT
+   btfss AlwaysOn, 1
+   bcf CH1_REG, CH1_BIT
+   retfie
+ISR_CD_0:
+   ;banksel TMR0H ;Bank 11
+   movf Delay1+.1, w
+   movwf TMR0H
+   movf Delay1, w
+   movwf TMR0L
+   banksel CH0_REG ;Bank 0
+   btfsc TurnOn0, 0
+   bsf CH0_REG, CH0_BIT
+   btfsc TurnOn0, 1
+   bsf CH1_REG, CH1_BIT
    retfie
 ;End interrupt routine
 
@@ -223,6 +256,16 @@ Sub16ReLmV macro R, L, V
     subwfb Tmp0, w
     movwf R+.1 ;RH = LH - VH - B
     endm
+
+;complementDelays
+complementDelays:
+    comf Delay0, f
+    comf Delay0+.1, f
+    comf Delay1, f
+    comf Delay1+.1, f
+    comf Delay2, f
+    comf Delay2+.1, f
+    return
     
 ;updateDelays
 ;No parameters
@@ -231,15 +274,24 @@ updateDelays:
     ;Disable interrupts
     bcf INTCON, GIE
     
+    ;Disable timer 0 in case we don't need it after this
+    banksel T0CON0 ;Bank 11
+    bcf T0CON0, T0EN
+    
     ;Clear some stuff
     ;banksel TurnOn0 ;Shared Bank
+    clrf TurnOffDelay
     clrf TurnOn0
     clrf TurnOn1
     clrf AlwaysOn
+    clrf Delay0
+    clrf Delay0+.1
     clrf Delay1
     clrf Delay1+.1
     clrf Delay2
     clrf Delay2+.1
+    
+    call complementDelays
     
     ;If Ch0Delay == 0
     banksel Ch0Delay ;Bank 0
@@ -248,22 +300,24 @@ updateDelays:
     goto UD_CH0_NE_0
     ;Ch0Delay == 0 so it is always on
     bsf AlwaysOn, 0
+    ;banksel CH0_REG ;Bank 0
+    bsf CH0_REG, CH0_BIT
     ;If Ch1Delay == 0
     Cmp16VtoL Ch1Delay, .0
     btfss WREG, CMP_16_EQ_BIT
     goto UD_CH1_NE_0
     ;Ch1Delay == 0 so it is always on
     bsf AlwaysOn, 1
-    ;Set single delay to max and we're done
-    Load16 Delay0, MAX_DELAY
-    goto UD_ENDING
+    ;banksel CH1_REG ;Bank 0
+    bsf CH1_REG, CH1_BIT
+    ;Both Channels are always on, might as well return now
+    return
 UD_CH1_NE_0:
     ;Ch0Delay == 0 and Ch1Delay != 0
     Copy16 Delay0, Ch1Delay
     bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
-    movlw .1
-    movwf TurnOffDelay
+    bsf TurnOffDelay, 1
     goto UD_ENDING
 UD_CH0_NE_0:
     ;If Ch1Delay == 0
@@ -272,12 +326,13 @@ UD_CH0_NE_0:
     goto UD_BOTH_NE_0
     ;Ch1Delay == 0 so it is always on
     bsf AlwaysOn, 1
+    ;banksel CH1_REG ;Bank 0
+    bsf CH1_REG, CH1_BIT
     ;Ch0Delay != 0 so setup delays
     Copy16 Delay0, Ch0Delay
     bsf TurnOn0, 0
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    movlw .1
-    movwf TurnOffDelay
+    bsf TurnOffDelay, 1
     goto UD_ENDING
 UD_BOTH_NE_0:
     ;If Ch0Delay == Ch1Delay
@@ -291,13 +346,14 @@ UD_BOTH_NE_0:
     bsf TurnOn0, 0
     bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    movlw .1
-    movwf TurnOffDelay
+    bsf TurnOffDelay, 1
     goto UD_ENDING
 UD_BOTH_MAX:
-    Load16 Delay0, MAX_DELAY
-    clrf TurnOffDelay
-    goto UD_ENDING
+    ;Both channels are always off, lets turn them off and be done with this
+    ;banksel CH0_REG ;Bank 0
+    bcf CH0_REG, CH0_BIT
+    bcf CH1_REG, CH1_BIT
+    return
 UD_CH0_NE_CH1:
     ;WREG still contains results of CH0Delay cmp to Ch1Delay
     btfss WREG, CMP_16_GT_BIT
@@ -311,7 +367,7 @@ UD_CH0_NE_CH1:
     Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
     bsf TurnOn1, 0
     Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
-    goto UD_CH0_NE_CH1_ENDING
+    goto UD_ENDING
 UD_CH0_LT_CH1:
     ;Ch1Delay > Ch0Delay
     Copy16 Delay0, Ch0Delay
@@ -322,14 +378,14 @@ UD_CH0_LT_CH1:
     Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
     bsf TurnOn1, 1
     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
-UD_CH0_NE_CH1_ENDING:
-    movlw .2
-    movwf TurnOffDelay
 UD_ENDING:
+    call complementDelays
+    
     ;Clear timer to ensure it won't immediately roll over
     banksel TMR0H ;Bank 11
     clrf TMR0H
     clrf TMR0L
+    bsf T0CON0, T0EN
     
     ;Clear any interrupts which occurred while we were processing
     banksel PIR0 ;Bank 14
@@ -341,6 +397,7 @@ UD_ENDING:
     bsf INTCON, GIE
     return
 UD_CH0_NE_CH1_MAX:
+    ;Could try to add logic here to turn off output immediately, but meh
     Sub16ReLmV Delay1, MAX_DELAY, Delay0
     movlw .1
     movwf TurnOffDelay
@@ -390,16 +447,14 @@ START:
     movwf RC1STA
     
     ;Setup Timer 0
+    ;Clk Fosc/4 8MHz
+    ;Pre 1:8 1MHz or 1us period
+    ;16 Bit enabled
     banksel T0CON0 ; Bank 11
     ;clrf T0CON0 ; Resets to 0
     bsf T0CON0, T016BIT
-    movlw b'01001111'
+    movlw b'01000011'
     movwf T0CON1
-    movlw 0xff
-    movwf TMR0H
-    movlw .11 ;255-244
-    movwf TMR0L
-    bsf T0CON0, T0EN
     
     ;Setup ZCD
     banksel ZCDCON ; Bank 18
@@ -408,7 +463,6 @@ START:
     
     ;Setup Interrupts Global Bank
     bsf INTCON, PEIE
-    bsf INTCON, GIE
     
     ;Setup Interrupts NonGlobal Bank
     banksel PIE0 ; Bank 14
