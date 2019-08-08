@@ -1,0 +1,20 @@
+//Test1
+//Ch0Delay = 596 0x0254
+//Ch1Delay = 5713 0x1651
+//Delay0 = 0x0254 Com = FDAB
+//Delay1 = 0x13FD Com = EC02
+//Delay2 = 0x09AF Com = F650
+0
+"S"
+"00"
+"02"
+"54"
+0
+"S"
+"01"
+"16"
+"51"
+"S"
+"02"
+"00"
+"00"

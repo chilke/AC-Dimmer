@@ -515,6 +515,7 @@ NO_FERR:
     movf RcvCnt, f
     btfss STATUS, Z
     call sendChar ;Send NACK if RcvCnt was not 0
+    banksel RcvCnt ;Bank 0
     clrf RcvCnt
     incf RcvCnt, f
     goto MAIN_LOOP
@@ -602,8 +603,10 @@ SET_CH1:
     Copy16 Ch1Delay, CmdVal
     movf Ch1Delay+.1, w
     call sendInt
+    banksel Ch1Delay ;Bank 0
     movf Ch1Delay, w
     call sendInt
+    banksel Ch1Delay ;Bank 0
     goto CMD_PROCESSED
 SET_CH0:
     ;banksel Ch0Delay ; Bank 0 already set
@@ -613,8 +616,10 @@ SET_CH0:
     Copy16 Ch0Delay, CmdVal
     movf Ch0Delay+.1, w
     call sendInt
+    banksel Ch0Delay ;Bank 0
     movf Ch0Delay, w
     call sendInt
+    banksel Ch0Delay ;Bank 0
     goto CMD_PROCESSED
 ;No receive byte, check for overflow error here
 CHECK_OERR:
@@ -624,6 +629,7 @@ CHECK_OERR:
 ;Has OERR, send NACK and clear/reset CREN to clear OERR
     movlw CMD_NACK
     call sendChar
+    banksel RC1STA
     bcf RC1STA, CREN
     bsf RC1STA, CREN
     goto MAIN_LOOP
@@ -631,12 +637,14 @@ CHECK_OERR:
 CMD_PROCESSED:
     movlw CMD_ACK
     call sendChar
+    banksel RcvCnt ;Bank 0
     clrf RcvCnt
     goto MAIN_LOOP
     
 CMD_FAILED:
     movlw CMD_NACK
     call sendChar
+    banksel RcvCnt ;Bank 0
     clrf RcvCnt
     goto MAIN_LOOP
     

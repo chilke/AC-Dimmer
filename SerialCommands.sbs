@@ -26,12 +26,12 @@ cyc
 ## CLOCK
 &
 ## STIMULUSFILE
-CMD1
+Test1
 RC1REG
 Message
-
+0
 2
-/Users/craig/MPLABXProjects/AC-Dimmer.X/CMD1.txt
+/Users/craig/MPLABXProjects/AC-Dimmer.X/Test1.txt
 Pkt
 No
 
@@ -43,5 +43,5 @@ No
 &
 ## ADVANCEDSCL
 
-0
+1
 &
