@@ -99,7 +99,7 @@ ISR_CD_1:
    bsf CH0_REG, CH0_BIT
    btfsc TurnOn1, 1
    bsf CH1_REG, CH1_BIT
-   btfss TurnOffDelay, 1
+   btfss TurnOffDelay, 0
    retfie
    btfss AlwaysOn, 0
    bcf CH0_REG, CH0_BIT
@@ -313,11 +313,15 @@ updateDelays:
     ;Both Channels are always on, might as well return now
     return
 UD_CH1_NE_0:
+    ;Check if Ch1 is Max
+    Cmp16VtoL Ch1Delay, MAX_DELAY
+    btfsc WREG, CMP_16_EQ_BIT
+    return
     ;Ch0Delay == 0 and Ch1Delay != 0
     Copy16 Delay0, Ch1Delay
     bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
-    bsf TurnOffDelay, 1
+    bsf TurnOffDelay, 0
     goto UD_ENDING
 UD_CH0_NE_0:
     ;If Ch1Delay == 0
@@ -328,11 +332,15 @@ UD_CH0_NE_0:
     bsf AlwaysOn, 1
     ;banksel CH1_REG ;Bank 0
     bsf CH1_REG, CH1_BIT
+    ;Check if Ch0 is Max
+    Cmp16VtoL Ch0Delay, MAX_DELAY
+    btfsc WREG, CMP_16_EQ_BIT
+    return
     ;Ch0Delay != 0 so setup delays
     Copy16 Delay0, Ch0Delay
     bsf TurnOn0, 0
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    bsf TurnOffDelay, 1
+    bsf TurnOffDelay, 0
     goto UD_ENDING
 UD_BOTH_NE_0:
     ;If Ch0Delay == Ch1Delay
@@ -346,7 +354,7 @@ UD_BOTH_NE_0:
     bsf TurnOn0, 0
     bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    bsf TurnOffDelay, 1
+    bsf TurnOffDelay, 0
     goto UD_ENDING
 UD_BOTH_MAX:
     ;Both channels are always off, lets turn them off and be done with this
@@ -399,8 +407,7 @@ UD_ENDING:
 UD_CH0_NE_CH1_MAX:
     ;Could try to add logic here to turn off output immediately, but meh
     Sub16ReLmV Delay1, MAX_DELAY, Delay0
-    movlw .1
-    movwf TurnOffDelay
+    bsf TurnOffDelay, 0
     goto UD_ENDING
     
 START:
@@ -598,7 +605,7 @@ ACTIVATE:
 SET_CH1:
     ;banksel Ch1Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
-    btfss WREG, CMP_16_LT_BIT
+    btfsc WREG, CMP_16_GT_BIT
     goto CMD_FAILED
     Copy16 Ch1Delay, CmdVal
     movf Ch1Delay+.1, w
@@ -611,7 +618,7 @@ SET_CH1:
 SET_CH0:
     ;banksel Ch0Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
-    btfss WREG, CMP_16_LT_BIT
+    btfsc WREG, CMP_16_GT_BIT
     goto CMD_FAILED
     Copy16 Ch0Delay, CmdVal
     movf Ch0Delay+.1, w

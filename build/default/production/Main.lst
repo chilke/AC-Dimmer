@@ -1,4 +1,4 @@
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  1
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -57,7 +57,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00013         
 0024                  00014 Tmp16a          res 2 ;24
 0026                  00015 Tmp16b          res 2 ;26
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  2
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -116,7 +116,7 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
 0007   130E           00064    bcf PIR2, ZCDIF
 0008   014B           00065    banksel TMR0H ;Bank 11
 0009   08??           00066    movf Delay0+.1, w
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  3
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -164,7 +164,7 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
 0024   1618           00099    bsf CH0_REG, CH0_BIT
 0025   1880           00100    btfsc TurnOn1, 1
 0026   1698           00101    bsf CH1_REG, CH1_BIT
-0027   1C80           00102    btfss TurnOffDelay, 1
+0027   1C00           00102    btfss TurnOffDelay, 0
 0028   0009           00103    retfie
 0029   1C00           00104    btfss AlwaysOn, 0
 002A   1218           00105    bcf CH0_REG, CH0_BIT
@@ -175,7 +175,7 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
                       00110    ;banksel TMR0H ;Bank 11
 002E   08??           00111    movf Delay1+.1, w
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  4
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -234,7 +234,7 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
                       00159 ;NIBBLE_TO_HEX uses Tmp0, Tmp1
 004B                  00160 sendInt:
 004B   00??           00161     movwf Tmp2
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  5
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -293,7 +293,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00212     Copy16 Tmp16a, Va
                       00213     Copy16 Tmp16b, Vb
                       00214     call compare16s
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  6
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  6
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -352,7 +352,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 006D   09??           00265     comf Delay1+.1, f
 006E   09??           00266     comf Delay2, f
 006F   09??           00267     comf Delay2+.1, f
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  7
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  7
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -411,7 +411,7 @@ Message[302]: Register in operand not in bank 0.  Ensure that bank bits are corr
                       00306     Cmp16VtoL Ch1Delay, .0
                           M     Copy16 Tmp16a, Ch1Delay
 008D   08??               M     movf Ch1Delay, w
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  8
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  8
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -435,614 +435,649 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00313     ;Both Channels are always on, might as well return now
 009A   0008           00314     return
 009B                  00315 UD_CH1_NE_0:
-                      00316     ;Ch0Delay == 0 and Ch1Delay != 0
-                      00317     Copy16 Delay0, Ch1Delay
+                      00316     ;Check if Ch1 is Max
+                      00317     Cmp16VtoL Ch1Delay, MAX_DELAY
+                          M     Copy16 Tmp16a, Ch1Delay
 009B   08??               M     movf Ch1Delay, w
-009C   00??               M     movwf Delay0
+009C   00??               M     movwf Tmp16a
 009D   08??               M     movf Ch1Delay+.1, w
-009E   00??               M     movwf Delay0+.1
-009F   1480           00318     bsf TurnOn0, 1
-                      00319     Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
-00A0   3000               M     movlw low .8192
-00A1   00??               M     movwf Tmp0
-00A2   08??               M     movf Ch1Delay, w
-00A3   02??               M     subwf Tmp0, w
-00A4   00??               M     movwf Delay1 ;RL = LL - VL
-00A5   3020               M     movlw high .8192
-00A6   00??               M     movwf Tmp0
-00A7   08??               M     movf Ch1Delay+.1, w
-00A8   3B??               M     subwfb Tmp0, w
-00A9   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
-00AA   1480           00320     bsf TurnOffDelay, 1
-00AB   2???           00321     goto UD_ENDING
-00AC                  00322 UD_CH0_NE_0:
-                      00323     ;If Ch1Delay == 0
-                      00324     Cmp16VtoL Ch1Delay, .0
+009E   00??               M     movwf Tmp16a+.1
+                          M     Load16 Tmp16b, .8192
+009F   3020               M     movlw high .8192
+00A0   00??               M     movwf Tmp16b+.1
+00A1   3000               M     movlw low .8192
+00A2   00??               M     movwf Tmp16b
+00A3   2???               M     call compare16s
+00A4   1889           00318     btfsc WREG, CMP_16_EQ_BIT
+00A5   0008           00319     return
+                      00320     ;Ch0Delay == 0 and Ch1Delay != 0
+                      00321     Copy16 Delay0, Ch1Delay
+00A6   08??               M     movf Ch1Delay, w
+00A7   00??               M     movwf Delay0
+00A8   08??               M     movf Ch1Delay+.1, w
+00A9   00??               M     movwf Delay0+.1
+00AA   1480           00322     bsf TurnOn0, 1
+                      00323     Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
+00AB   3000               M     movlw low .8192
+00AC   00??               M     movwf Tmp0
+00AD   08??               M     movf Ch1Delay, w
+00AE   02??               M     subwf Tmp0, w
+00AF   00??               M     movwf Delay1 ;RL = LL - VL
+00B0   3020               M     movlw high .8192
+00B1   00??               M     movwf Tmp0
+00B2   08??               M     movf Ch1Delay+.1, w
+00B3   3B??               M     subwfb Tmp0, w
+00B4   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
+00B5   1400           00324     bsf TurnOffDelay, 0
+00B6   2???           00325     goto UD_ENDING
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00B7                  00326 UD_CH0_NE_0:
+                      00327     ;If Ch1Delay == 0
+                      00328     Cmp16VtoL Ch1Delay, .0
                           M     Copy16 Tmp16a, Ch1Delay
-00AC   08??               M     movf Ch1Delay, w
-00AD   00??               M     movwf Tmp16a
-00AE   08??               M     movf Ch1Delay+.1, w
-00AF   00??               M     movwf Tmp16a+.1
+00B7   08??               M     movf Ch1Delay, w
+00B8   00??               M     movwf Tmp16a
+00B9   08??               M     movf Ch1Delay+.1, w
+00BA   00??               M     movwf Tmp16a+.1
                           M     Load16 Tmp16b, .0
-00B0   3000               M     movlw high .0
-00B1   00??               M     movwf Tmp16b+.1
-00B2   3000               M     movlw low .0
-00B3   00??               M     movwf Tmp16b
-00B4   2???               M     call compare16s
-00B5   1C89           00325     btfss WREG, CMP_16_EQ_BIT
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE  9
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-00B6   2???           00326     goto UD_BOTH_NE_0
-                      00327     ;Ch1Delay == 0 so it is always on
-00B7   1480           00328     bsf AlwaysOn, 1
-                      00329     ;banksel CH1_REG ;Bank 0
-00B8   1698           00330     bsf CH1_REG, CH1_BIT
-                      00331     ;Ch0Delay != 0 so setup delays
-                      00332     Copy16 Delay0, Ch0Delay
-00B9   08??               M     movf Ch0Delay, w
-00BA   00??               M     movwf Delay0
-00BB   08??               M     movf Ch0Delay+.1, w
-00BC   00??               M     movwf Delay0+.1
-00BD   1400           00333     bsf TurnOn0, 0
-                      00334     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-00BE   3000               M     movlw low .8192
-00BF   00??               M     movwf Tmp0
-00C0   08??               M     movf Ch0Delay, w
-00C1   02??               M     subwf Tmp0, w
-00C2   00??               M     movwf Delay1 ;RL = LL - VL
-00C3   3020               M     movlw high .8192
-00C4   00??               M     movwf Tmp0
-00C5   08??               M     movf Ch0Delay+.1, w
-00C6   3B??               M     subwfb Tmp0, w
-00C7   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
-00C8   1480           00335     bsf TurnOffDelay, 1
-00C9   2???           00336     goto UD_ENDING
-00CA                  00337 UD_BOTH_NE_0:
-                      00338     ;If Ch0Delay == Ch1Delay
-                      00339     Cmp16VtoV Ch0Delay, Ch1Delay
+00BB   3000               M     movlw high .0
+00BC   00??               M     movwf Tmp16b+.1
+00BD   3000               M     movlw low .0
+00BE   00??               M     movwf Tmp16b
+00BF   2???               M     call compare16s
+00C0   1C89           00329     btfss WREG, CMP_16_EQ_BIT
+00C1   2???           00330     goto UD_BOTH_NE_0
+                      00331     ;Ch1Delay == 0 so it is always on
+00C2   1480           00332     bsf AlwaysOn, 1
+                      00333     ;banksel CH1_REG ;Bank 0
+00C3   1698           00334     bsf CH1_REG, CH1_BIT
+                      00335     ;Check if Ch0 is Max
+                      00336     Cmp16VtoL Ch0Delay, MAX_DELAY
                           M     Copy16 Tmp16a, Ch0Delay
-00CA   08??               M     movf Ch0Delay, w
-00CB   00??               M     movwf Tmp16a
-00CC   08??               M     movf Ch0Delay+.1, w
-00CD   00??               M     movwf Tmp16a+.1
-                          M     Copy16 Tmp16b, Ch1Delay
-00CE   08??               M     movf Ch1Delay, w
-00CF   00??               M     movwf Tmp16b
-00D0   08??               M     movf Ch1Delay+.1, w
-00D1   00??               M     movwf Tmp16b+.1
-00D2   2???               M     call compare16s
-00D3   1C89           00340     btfss WREG, CMP_16_EQ_BIT
-00D4   2???           00341     goto UD_CH0_NE_CH1
-                      00342     Cmp16VtoL Ch0Delay, MAX_DELAY
-                          M     Copy16 Tmp16a, Ch0Delay
-00D5   08??               M     movf Ch0Delay, w
-00D6   00??               M     movwf Tmp16a
-00D7   08??               M     movf Ch0Delay+.1, w
-00D8   00??               M     movwf Tmp16a+.1
+00C4   08??               M     movf Ch0Delay, w
+00C5   00??               M     movwf Tmp16a
+00C6   08??               M     movf Ch0Delay+.1, w
+00C7   00??               M     movwf Tmp16a+.1
                           M     Load16 Tmp16b, .8192
+00C8   3020               M     movlw high .8192
+00C9   00??               M     movwf Tmp16b+.1
+00CA   3000               M     movlw low .8192
+00CB   00??               M     movwf Tmp16b
+00CC   2???               M     call compare16s
+00CD   1889           00337     btfsc WREG, CMP_16_EQ_BIT
+00CE   0008           00338     return
+                      00339     ;Ch0Delay != 0 so setup delays
+                      00340     Copy16 Delay0, Ch0Delay
+00CF   08??               M     movf Ch0Delay, w
+00D0   00??               M     movwf Delay0
+00D1   08??               M     movf Ch0Delay+.1, w
+00D2   00??               M     movwf Delay0+.1
+00D3   1400           00341     bsf TurnOn0, 0
+                      00342     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
+00D4   3000               M     movlw low .8192
+00D5   00??               M     movwf Tmp0
+00D6   08??               M     movf Ch0Delay, w
+00D7   02??               M     subwf Tmp0, w
+00D8   00??               M     movwf Delay1 ;RL = LL - VL
 00D9   3020               M     movlw high .8192
-00DA   00??               M     movwf Tmp16b+.1
-00DB   3000               M     movlw low .8192
-00DC   00??               M     movwf Tmp16b
-00DD   2???               M     call compare16s
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 10
+00DA   00??               M     movwf Tmp0
+00DB   08??               M     movf Ch0Delay+.1, w
+00DC   3B??               M     subwfb Tmp0, w
+00DD   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 10
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-00DE   1889           00343     btfsc WREG, CMP_16_EQ_BIT
-00DF   2???           00344     goto UD_BOTH_MAX
-                      00345     Copy16 Delay0, Ch0Delay
-00E0   08??               M     movf Ch0Delay, w
-00E1   00??               M     movwf Delay0
-00E2   08??               M     movf Ch0Delay+.1, w
-00E3   00??               M     movwf Delay0+.1
-00E4   1400           00346     bsf TurnOn0, 0
-00E5   1480           00347     bsf TurnOn0, 1
-                      00348     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-00E6   3000               M     movlw low .8192
-00E7   00??               M     movwf Tmp0
-00E8   08??               M     movf Ch0Delay, w
-00E9   02??               M     subwf Tmp0, w
-00EA   00??               M     movwf Delay1 ;RL = LL - VL
-00EB   3020               M     movlw high .8192
-00EC   00??               M     movwf Tmp0
-00ED   08??               M     movf Ch0Delay+.1, w
-00EE   3B??               M     subwfb Tmp0, w
-00EF   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
-00F0   1480           00349     bsf TurnOffDelay, 1
-00F1   2???           00350     goto UD_ENDING
-00F2                  00351 UD_BOTH_MAX:
-                      00352     ;Both channels are always off, lets turn them off and be done with this
-                      00353     ;banksel CH0_REG ;Bank 0
-00F2   1218           00354     bcf CH0_REG, CH0_BIT
-00F3   1298           00355     bcf CH1_REG, CH1_BIT
-00F4   0008           00356     return
-00F5                  00357 UD_CH0_NE_CH1:
-                      00358     ;WREG still contains results of CH0Delay cmp to Ch1Delay
-00F5   1C09           00359     btfss WREG, CMP_16_GT_BIT
-00F6   2???           00360     goto UD_CH0_LT_CH1
-                      00361     ;Ch0Delay > Ch1Delay
-                      00362     Copy16 Delay0, Ch1Delay
-00F7   08??               M     movf Ch1Delay, w
-00F8   00??               M     movwf Delay0
-00F9   08??               M     movf Ch1Delay+.1, w
-00FA   00??               M     movwf Delay0+.1
-00FB   1480           00363     bsf TurnOn0, 1
-                      00364     Cmp16VtoL Ch0Delay, MAX_DELAY
+00DE   1400           00343     bsf TurnOffDelay, 0
+00DF   2???           00344     goto UD_ENDING
+00E0                  00345 UD_BOTH_NE_0:
+                      00346     ;If Ch0Delay == Ch1Delay
+                      00347     Cmp16VtoV Ch0Delay, Ch1Delay
                           M     Copy16 Tmp16a, Ch0Delay
-00FC   08??               M     movf Ch0Delay, w
-00FD   00??               M     movwf Tmp16a
-00FE   08??               M     movf Ch0Delay+.1, w
-00FF   00??               M     movwf Tmp16a+.1
+00E0   08??               M     movf Ch0Delay, w
+00E1   00??               M     movwf Tmp16a
+00E2   08??               M     movf Ch0Delay+.1, w
+00E3   00??               M     movwf Tmp16a+.1
+                          M     Copy16 Tmp16b, Ch1Delay
+00E4   08??               M     movf Ch1Delay, w
+00E5   00??               M     movwf Tmp16b
+00E6   08??               M     movf Ch1Delay+.1, w
+00E7   00??               M     movwf Tmp16b+.1
+00E8   2???               M     call compare16s
+00E9   1C89           00348     btfss WREG, CMP_16_EQ_BIT
+00EA   2???           00349     goto UD_CH0_NE_CH1
+                      00350     Cmp16VtoL Ch0Delay, MAX_DELAY
+                          M     Copy16 Tmp16a, Ch0Delay
+00EB   08??               M     movf Ch0Delay, w
+00EC   00??               M     movwf Tmp16a
+00ED   08??               M     movf Ch0Delay+.1, w
+00EE   00??               M     movwf Tmp16a+.1
                           M     Load16 Tmp16b, .8192
-0100   3020               M     movlw high .8192
-0101   00??               M     movwf Tmp16b+.1
-0102   3000               M     movlw low .8192
-0103   00??               M     movwf Tmp16b
-0104   2???               M     call compare16s
-0105   1889           00365     btfsc WREG, CMP_16_EQ_BIT
-0106   2???           00366     goto UD_CH0_NE_CH1_MAX
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 11
+00EF   3020               M     movlw high .8192
+00F0   00??               M     movwf Tmp16b+.1
+00F1   3000               M     movlw low .8192
+00F2   00??               M     movwf Tmp16b
+00F3   2???               M     call compare16s
+00F4   1889           00351     btfsc WREG, CMP_16_EQ_BIT
+00F5   2???           00352     goto UD_BOTH_MAX
+                      00353     Copy16 Delay0, Ch0Delay
+00F6   08??               M     movf Ch0Delay, w
+00F7   00??               M     movwf Delay0
+00F8   08??               M     movf Ch0Delay+.1, w
+00F9   00??               M     movwf Delay0+.1
+00FA   1400           00354     bsf TurnOn0, 0
+00FB   1480           00355     bsf TurnOn0, 1
+                      00356     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
+00FC   3000               M     movlw low .8192
+00FD   00??               M     movwf Tmp0
+00FE   08??               M     movf Ch0Delay, w
+00FF   02??               M     subwf Tmp0, w
+0100   00??               M     movwf Delay1 ;RL = LL - VL
+0101   3020               M     movlw high .8192
+0102   00??               M     movwf Tmp0
+0103   08??               M     movf Ch0Delay+.1, w
+0104   3B??               M     subwfb Tmp0, w
+0105   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
+0106   1400           00357     bsf TurnOffDelay, 0
+0107   2???           00358     goto UD_ENDING
+0108                  00359 UD_BOTH_MAX:
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 11
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-                      00367     Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
-0107   08??               M     movf Ch1Delay, w
-0108   02??               M     subwf Ch0Delay, w
-0109   00??               M     movwf Delay1 ;RL = VaL - VbL
-010A   08??               M     movf Ch1Delay+.1, w
-010B   3B??               M     subwfb Ch0Delay+.1, w
-010C   00??               M     movwf Delay1+.1 ;RH = VaH - VbH - B
-010D   1400           00368     bsf TurnOn1, 0
-                      00369     Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
-010E   3000               M     movlw low .8192
-010F   00??               M     movwf Tmp0
-0110   08??               M     movf Ch0Delay, w
-0111   02??               M     subwf Tmp0, w
-0112   00??               M     movwf Delay2 ;RL = LL - VL
-0113   3020               M     movlw high .8192
-0114   00??               M     movwf Tmp0
-0115   08??               M     movf Ch0Delay+.1, w
-0116   3B??               M     subwfb Tmp0, w
-0117   00??               M     movwf Delay2+.1 ;RH = LH - VH - B
-0118   2???           00370     goto UD_ENDING
-0119                  00371 UD_CH0_LT_CH1:
-                      00372     ;Ch1Delay > Ch0Delay
-                      00373     Copy16 Delay0, Ch0Delay
-0119   08??               M     movf Ch0Delay, w
-011A   00??               M     movwf Delay0
-011B   08??               M     movf Ch0Delay+.1, w
-011C   00??               M     movwf Delay0+.1
-011D   1400           00374     bsf TurnOn0, 0
-                      00375     Cmp16VtoL Ch1Delay, MAX_DELAY
-                          M     Copy16 Tmp16a, Ch1Delay
-011E   08??               M     movf Ch1Delay, w
-011F   00??               M     movwf Tmp16a
+                      00360     ;Both channels are always off, lets turn them off and be done with this
+                      00361     ;banksel CH0_REG ;Bank 0
+0108   1218           00362     bcf CH0_REG, CH0_BIT
+0109   1298           00363     bcf CH1_REG, CH1_BIT
+010A   0008           00364     return
+010B                  00365 UD_CH0_NE_CH1:
+                      00366     ;WREG still contains results of CH0Delay cmp to Ch1Delay
+010B   1C09           00367     btfss WREG, CMP_16_GT_BIT
+010C   2???           00368     goto UD_CH0_LT_CH1
+                      00369     ;Ch0Delay > Ch1Delay
+                      00370     Copy16 Delay0, Ch1Delay
+010D   08??               M     movf Ch1Delay, w
+010E   00??               M     movwf Delay0
+010F   08??               M     movf Ch1Delay+.1, w
+0110   00??               M     movwf Delay0+.1
+0111   1480           00371     bsf TurnOn0, 1
+                      00372     Cmp16VtoL Ch0Delay, MAX_DELAY
+                          M     Copy16 Tmp16a, Ch0Delay
+0112   08??               M     movf Ch0Delay, w
+0113   00??               M     movwf Tmp16a
+0114   08??               M     movf Ch0Delay+.1, w
+0115   00??               M     movwf Tmp16a+.1
+                          M     Load16 Tmp16b, .8192
+0116   3020               M     movlw high .8192
+0117   00??               M     movwf Tmp16b+.1
+0118   3000               M     movlw low .8192
+0119   00??               M     movwf Tmp16b
+011A   2???               M     call compare16s
+011B   1889           00373     btfsc WREG, CMP_16_EQ_BIT
+011C   2???           00374     goto UD_CH0_NE_CH1_MAX
+                      00375     Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
+011D   08??               M     movf Ch1Delay, w
+011E   02??               M     subwf Ch0Delay, w
+011F   00??               M     movwf Delay1 ;RL = VaL - VbL
 0120   08??               M     movf Ch1Delay+.1, w
-0121   00??               M     movwf Tmp16a+.1
-                          M     Load16 Tmp16b, .8192
-0122   3020               M     movlw high .8192
-0123   00??               M     movwf Tmp16b+.1
+0121   3B??               M     subwfb Ch0Delay+.1, w
+0122   00??               M     movwf Delay1+.1 ;RH = VaH - VbH - B
+0123   1400           00376     bsf TurnOn1, 0
+                      00377     Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
 0124   3000               M     movlw low .8192
-0125   00??               M     movwf Tmp16b
-0126   2???               M     call compare16s
-0127   1889           00376     btfsc WREG, CMP_16_EQ_BIT
-0128   2???           00377     goto UD_CH0_NE_CH1_MAX
-                      00378     Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
-0129   08??               M     movf Ch0Delay, w
-012A   02??               M     subwf Ch1Delay, w
-012B   00??               M     movwf Delay1 ;RL = VaL - VbL
-012C   08??               M     movf Ch0Delay+.1, w
-012D   3B??               M     subwfb Ch1Delay+.1, w
-012E   00??               M     movwf Delay1+.1 ;RH = VaH - VbH - B
-012F   1480           00379     bsf TurnOn1, 1
-                      00380     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
-0130   3000               M     movlw low .8192
-0131   00??               M     movwf Tmp0
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 12
+0125   00??               M     movwf Tmp0
+0126   08??               M     movf Ch0Delay, w
+0127   02??               M     subwf Tmp0, w
+0128   00??               M     movwf Delay2 ;RL = LL - VL
+0129   3020               M     movlw high .8192
+012A   00??               M     movwf Tmp0
+012B   08??               M     movf Ch0Delay+.1, w
+012C   3B??               M     subwfb Tmp0, w
+012D   00??               M     movwf Delay2+.1 ;RH = LH - VH - B
+012E   2???           00378     goto UD_ENDING
+012F                  00379 UD_CH0_LT_CH1:
+                      00380     ;Ch1Delay > Ch0Delay
+                      00381     Copy16 Delay0, Ch0Delay
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 12
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-0132   08??               M     movf Ch1Delay, w
-0133   02??               M     subwf Tmp0, w
-0134   00??               M     movwf Delay2 ;RL = LL - VL
-0135   3020               M     movlw high .8192
-0136   00??               M     movwf Tmp0
-0137   08??               M     movf Ch1Delay+.1, w
-0138   3B??               M     subwfb Tmp0, w
-0139   00??               M     movwf Delay2+.1 ;RH = LH - VH - B
-013A                  00381 UD_ENDING:
-013A   2???           00382     call complementDelays
-                      00383     
-                      00384     ;Clear timer to ensure it won't immediately roll over
-013B   014B           00385     banksel TMR0H ;Bank 11
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-013C   019D           00386     clrf TMR0H
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-013D   019C           00387     clrf TMR0L
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-013E   179E           00388     bsf T0CON0, T0EN
-                      00389     
-                      00390     ;Clear any interrupts which occurred while we were processing
-013F   014E           00391     banksel PIR0 ;Bank 14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0140   128C           00392     bcf PIR0, TMR0IF
-                      00393     ;banksel PIR2 ;Bank 14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0141   130E           00394     bcf PIR2, ZCDIF
-                      00395     
-                      00396     ;Finally reenable interrupts
-0142   178B           00397     bsf INTCON, GIE
-0143   0008           00398     return
-0144                  00399 UD_CH0_NE_CH1_MAX:
-                      00400     ;Could try to add logic here to turn off output immediately, but meh
-                      00401     Sub16ReLmV Delay1, MAX_DELAY, Delay0
-0144   3000               M     movlw low .8192
-0145   00??               M     movwf Tmp0
-0146   08??               M     movf Delay0, w
-0147   02??               M     subwf Tmp0, w
-0148   00??               M     movwf Delay1 ;RL = LL - VL
-0149   3020               M     movlw high .8192
-014A   00??               M     movwf Tmp0
-014B   08??               M     movf Delay0+.1, w
-014C   3B??               M     subwfb Tmp0, w
-014D   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
-014E   3001           00402     movlw .1
-014F   00??           00403     movwf TurnOffDelay
-0150   2???           00404     goto UD_ENDING
-                      00405     
-0151                  00406 START:
-                      00407     ;Setup analog select registers
-                      00408     ;ZCD on RA2 must have analog enabled
-0151   017E           00409     banksel ANSELA ;Bank 62
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 13
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-0152   01B8           00410     clrf ANSELA
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0153   01CE           00411     clrf ANSELC
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0154   1538           00412     bsf ANSELA, ANSA2
-                      00413     ;Setup PPS outputs
-                      00414     ;0f-EUSART TX on RC4
-0155   300F           00415     movlw 0x0f
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0156   00A4           00416     movwf RC4PPS
-                      00417     
-                      00418     ;Setup I/O Pins, all output 0 by default
-                      00419     ;RA2 is ZCD and must be input
-                      00420     ;RC5 is EUSART RX
-0157   0140           00421     banksel LATA; Bank 0
-0158   0198           00422     clrf LATA
-0159   019A           00423     clrf LATC
-015A   0192           00424     clrf TRISA
-015B   0194           00425     clrf TRISC
-015C   1512           00426     bsf TRISA, TRISA2
-015D   1694           00427     bsf TRISC, TRISC5
-                      00428     
-                      00429     ;Setup PPS inputs
-                      00430     ;EUSART TX on RC4
-                      00431     ;EUSART RX on RC5
-015E   017D           00432     banksel TX1CKPPS ; Bank 61
-015F   3014           00433     movlw 0x14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0160   00CC           00434     movwf TX1CKPPS
-0161   3015           00435     movlw 0x15
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0162   00CB           00436     movwf RX1DTPPS
-                      00437     
-                      00438     ;Setup EUSART
-0163   0142           00439     banksel SP1BRGH ; Bank 2
-                      00440     ;clrf SP1BRGH ; Resets to 0
-                      00441     ;clrf SP1BRGL ; Resets to 0
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0164   161B           00442     bsf SP1BRGL, 4 ; 16
-                      00443     ;clrf BAUD1CON ; Resets to 0
-0165   3024           00444     movlw b'00100100'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0166   009E           00445     movwf TX1STA
-0167   3090           00446     movlw b'10010000'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0168   009D           00447     movwf RC1STA
-                      00448     
-                      00449     ;Setup Timer 0
-                      00450     ;Clk Fosc/4 8MHz
-                      00451     ;Pre 1:8 1MHz or 1us period
-                      00452     ;16 Bit enabled
-0169   014B           00453     banksel T0CON0 ; Bank 11
-                      00454     ;clrf T0CON0 ; Resets to 0
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 14
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-016A   161E           00455     bsf T0CON0, T016BIT
-016B   3043           00456     movlw b'01000011'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-016C   009F           00457     movwf T0CON1
-                      00458     
-                      00459     ;Setup ZCD
-016D   0152           00460     banksel ZCDCON ; Bank 18
-016E   3083           00461     movlw b'10000011'
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-016F   009F           00462     movwf ZCDCON
-                      00463     
-                      00464     ;Setup Interrupts Global Bank
-0170   170B           00465     bsf INTCON, PEIE
-                      00466     
-                      00467     ;Setup Interrupts NonGlobal Bank
-0171   014E           00468     banksel PIE0 ; Bank 14
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0172   1696           00469     bsf PIE0, TMR0IE
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0173   1718           00470     bsf PIE2, ZCDIE
-                      00471     
-0174   014?           00472     banksel RcvCnt ;Bank 0
-0175   01??           00473     clrf RcvCnt
-                      00474     
-                      00475     ;Set default delay values to ensure outputs turned off
-0176   014?           00476     banksel Ch0Delay
-                      00477     Load16 Ch0Delay, MAX_DELAY
-0177   3020               M     movlw high .8192
-0178   00??               M     movwf Ch0Delay+.1
-0179   3000               M     movlw low .8192
-017A   00??               M     movwf Ch0Delay
-                      00478     Load16 Ch1Delay, MAX_DELAY
-017B   3020               M     movlw high .8192
-017C   00??               M     movwf Ch1Delay+.1
-017D   3000               M     movlw low .8192
-017E   00??               M     movwf Ch1Delay
-017F   2???           00479     call updateDelays
-                      00480     
-0180                  00481 MAIN_LOOP:
-0180   014E           00482     banksel PIR3 ; Bank 14
-                      00483 ;Check if we have a receive byte
-                      00484 ;if PIR3.RC1IF
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0181   1E8F           00485     btfss PIR3, RC1IF
-0182   2???           00486     goto CHECK_OERR
-                      00487 ;We have a receive byte
-                      00488 ;Check for framing error on this byte
-0183   0142           00489     banksel RC1STA ; Bank 2
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0184   1D1D           00490     btfss RC1STA, FERR
-0185   2???           00491     goto NO_FERR
-                      00492 ;Has FERR, read byte, reset receive count, send NACK
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 15
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-                      00493     ;banksel RC1REG ; Bank 2 already selected
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0186   0899           00494     movf RC1REG, f
-0187   014?           00495     banksel Rx ;Bank 0
-0188   08??           00496     movf Rx, f
-0189   1D03           00497     btfss STATUS, Z
-018A   2???           00498     goto CMD_FAILED
-018B   08??           00499     movf RcvCnt, f
-018C   1D03           00500     btfss STATUS, Z
-018D   2???           00501     goto CMD_FAILED
-018E   2???           00502     goto MAIN_LOOP
-018F                  00503 NO_FERR:
-                      00504     ;banksel RC1REG ; Bank 2 already selected
-Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-018F   0819           00505     movf RC1REG, w
-0190   014?           00506     banksel Rx ;Bank 0
-0191   00??           00507     movwf Rx
-                      00508     ;First check for Start Byte no matter RcvCnt
-0192   3053           00509     movlw CMD_START
-0193   02??           00510     subwf Rx, w
-0194   1D03           00511     btfss STATUS, Z
-0195   2???           00512     goto NOT_START_BYTE
-                      00513     ;So we got a start byte, check if RcvCnt is 0
-0196   304E           00514     movlw CMD_NACK
-0197   08??           00515     movf RcvCnt, f
-0198   1D03           00516     btfss STATUS, Z
-0199   2???           00517     call sendChar ;Send NACK if RcvCnt was not 0
-019A   014?           00518     banksel RcvCnt ;Bank 0
-019B   01??           00519     clrf RcvCnt
-019C   0A??           00520     incf RcvCnt, f
-019D   2???           00521     goto MAIN_LOOP
-019E                  00522 NOT_START_BYTE:
-019E   3007           00523     movlw 0x07
-019F   05??           00524     andwf RcvCnt, w ; mask in first 3 bits just in case
-01A0   0A??           00525     incf RcvCnt, f
-01A1   000B           00526     brw
-01A2   2???           00527     goto RCV_CNT_0
-01A3   2???           00528     goto RCV_CNT_1
-01A4   2???           00529     goto RCV_CNT_2
-01A5   2???           00530     goto RCV_CNT_3
-01A6   2???           00531     goto RCV_CNT_4
-01A7   2???           00532     goto RCV_CNT_5
-01A8   2???           00533     goto RCV_CNT_6
-                      00534 ;Default RcvCnt 6 or 7 means we've received too much, should never happen
-01A9                  00535 RCV_CNT_0:
-                      00536     ;If we got here we know this isn't a start byte
-                      00537     ;Check for break character
-01A9   08??           00538     movf Rx, f
-01AA   1D03           00539     btfss STATUS, Z
-01AB   2???           00540     goto CMD_FAILED
-01AC   01??           00541     clrf RcvCnt
-01AD   2???           00542     goto MAIN_LOOP
-01AE                  00543 RCV_CNT_1:
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 16
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-                      00544     ;This is the high nibble of the command byte
-01AE   08??           00545     movf Rx, w
-01AF   2???           00546     call hexToNibble
-01B0   00??           00547     movwf Cmd
-01B1   0E??           00548     swapf Cmd, f
-01B2   2???           00549     goto MAIN_LOOP
-01B3                  00550 RCV_CNT_2:
-                      00551     ;This is the low nibble of the command byte
-01B3   08??           00552     movf Rx, w
-01B4   2???           00553     call hexToNibble
-01B5   07??           00554     addwf Cmd, f
-                      00555     ;First check that command is within range
-01B6   3003           00556     movlw CMD_MAX+.1
-01B7   02??           00557     subwf Cmd, w ;Cmd - (CMD_MAX+1)
-                      00558     ;This should generate Borrow or ~C if Cmd <= CMD_MAX
-01B8   1803           00559     btfsc STATUS, C
-01B9   2???           00560     goto CMD_FAILED ;Cmd > CMD_MAX
-01BA   2???           00561     goto MAIN_LOOP ;Cmd <= CMD_MAX
-01BB                  00562 RCV_CNT_3:
-                      00563     ;This is the high nibble of the high param value
-01BB   08??           00564     movf Rx, w
-01BC   2???           00565     call hexToNibble
-01BD   00??           00566     movwf CmdVal+.1
-01BE   0E??           00567     swapf CmdVal+.1, f
-01BF   2???           00568     goto MAIN_LOOP
-01C0                  00569 RCV_CNT_4:
-                      00570     ;This is the low nibble of the high param value
-01C0   08??           00571     movf Rx, w
-01C1   2???           00572     call hexToNibble
-01C2   07??           00573     addwf CmdVal+.1, f
-01C3   2???           00574     goto MAIN_LOOP
-01C4                  00575 RCV_CNT_5:
-                      00576     ;This is the high nibble of the low param value
-01C4   08??           00577     movf Rx, w
-01C5   2???           00578     call hexToNibble
-01C6   00??           00579     movwf CmdVal
-01C7   0E??           00580     swapf CmdVal, f
-01C8   2???           00581     goto MAIN_LOOP
-01C9                  00582 RCV_CNT_6:
-                      00583     ;This is the low nibble of the low param value
-01C9   08??           00584     movf Rx, w
-01CA   2???           00585     call hexToNibble
-01CB   07??           00586     addwf CmdVal, f
-                      00587 ;We've already validated Cmd is <= CMD_MAX, so let's just start processing
-01CC   08??           00588     movf Cmd, w
-                      00589 ;Might as well do this now since all paths ahead need it
-                      00590     ;banksel Ch0Delay ; Bank 0 already set
-01CD   000B           00591     brw
-01CE   2???           00592     goto SET_CH0
-01CF   2???           00593     goto SET_CH1
-                      00594 ;if more commands are added, change this to goto ACTIVATE
-01D0                  00595 ACTIVATE:
-01D0   2???           00596     call updateDelays
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 17
-
-
-LOC  OBJECT CODE     LINE SOURCE TEXT
-  VALUE
-
-01D1   2???           00597     goto CMD_PROCESSED
-01D2                  00598 SET_CH1:
-                      00599     ;banksel Ch1Delay ; Bank 0 already set
-                      00600     Cmp16VtoL CmdVal, MAX_DELAY
-                          M     Copy16 Tmp16a, CmdVal
-01D2   08??               M     movf CmdVal, w
-01D3   00??               M     movwf Tmp16a
-01D4   08??               M     movf CmdVal+.1, w
-01D5   00??               M     movwf Tmp16a+.1
+012F   08??               M     movf Ch0Delay, w
+0130   00??               M     movwf Delay0
+0131   08??               M     movf Ch0Delay+.1, w
+0132   00??               M     movwf Delay0+.1
+0133   1400           00382     bsf TurnOn0, 0
+                      00383     Cmp16VtoL Ch1Delay, MAX_DELAY
+                          M     Copy16 Tmp16a, Ch1Delay
+0134   08??               M     movf Ch1Delay, w
+0135   00??               M     movwf Tmp16a
+0136   08??               M     movf Ch1Delay+.1, w
+0137   00??               M     movwf Tmp16a+.1
                           M     Load16 Tmp16b, .8192
-01D6   3020               M     movlw high .8192
-01D7   00??               M     movwf Tmp16b+.1
-01D8   3000               M     movlw low .8192
-01D9   00??               M     movwf Tmp16b
-01DA   2???               M     call compare16s
-01DB   1D09           00601     btfss WREG, CMP_16_LT_BIT
-01DC   2???           00602     goto CMD_FAILED
-                      00603     Copy16 Ch1Delay, CmdVal
-01DD   08??               M     movf CmdVal, w
-01DE   00??               M     movwf Ch1Delay
-01DF   08??               M     movf CmdVal+.1, w
-01E0   00??               M     movwf Ch1Delay+.1
-01E1   08??           00604     movf Ch1Delay+.1, w
-01E2   2???           00605     call sendInt
-01E3   014?           00606     banksel Ch1Delay ;Bank 0
-01E4   08??           00607     movf Ch1Delay, w
-01E5   2???           00608     call sendInt
-01E6   014?           00609     banksel Ch1Delay ;Bank 0
-01E7   2???           00610     goto CMD_PROCESSED
-01E8                  00611 SET_CH0:
-                      00612     ;banksel Ch0Delay ; Bank 0 already set
-                      00613     Cmp16VtoL CmdVal, MAX_DELAY
-                          M     Copy16 Tmp16a, CmdVal
-01E8   08??               M     movf CmdVal, w
-01E9   00??               M     movwf Tmp16a
-01EA   08??               M     movf CmdVal+.1, w
-01EB   00??               M     movwf Tmp16a+.1
-                          M     Load16 Tmp16b, .8192
-01EC   3020               M     movlw high .8192
-01ED   00??               M     movwf Tmp16b+.1
-01EE   3000               M     movlw low .8192
-01EF   00??               M     movwf Tmp16b
-01F0   2???               M     call compare16s
-01F1   1D09           00614     btfss WREG, CMP_16_LT_BIT
-01F2   2???           00615     goto CMD_FAILED
-                      00616     Copy16 Ch0Delay, CmdVal
-01F3   08??               M     movf CmdVal, w
-01F4   00??               M     movwf Ch0Delay
-01F5   08??               M     movf CmdVal+.1, w
-01F6   00??               M     movwf Ch0Delay+.1
-01F7   08??           00617     movf Ch0Delay+.1, w
-01F8   2???           00618     call sendInt
-01F9   014?           00619     banksel Ch0Delay ;Bank 0
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 18
+0138   3020               M     movlw high .8192
+0139   00??               M     movwf Tmp16b+.1
+013A   3000               M     movlw low .8192
+013B   00??               M     movwf Tmp16b
+013C   2???               M     call compare16s
+013D   1889           00384     btfsc WREG, CMP_16_EQ_BIT
+013E   2???           00385     goto UD_CH0_NE_CH1_MAX
+                      00386     Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
+013F   08??               M     movf Ch0Delay, w
+0140   02??               M     subwf Ch1Delay, w
+0141   00??               M     movwf Delay1 ;RL = VaL - VbL
+0142   08??               M     movf Ch0Delay+.1, w
+0143   3B??               M     subwfb Ch1Delay+.1, w
+0144   00??               M     movwf Delay1+.1 ;RH = VaH - VbH - B
+0145   1480           00387     bsf TurnOn1, 1
+                      00388     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
+0146   3000               M     movlw low .8192
+0147   00??               M     movwf Tmp0
+0148   08??               M     movf Ch1Delay, w
+0149   02??               M     subwf Tmp0, w
+014A   00??               M     movwf Delay2 ;RL = LL - VL
+014B   3020               M     movlw high .8192
+014C   00??               M     movwf Tmp0
+014D   08??               M     movf Ch1Delay+.1, w
+014E   3B??               M     subwfb Tmp0, w
+014F   00??               M     movwf Delay2+.1 ;RH = LH - VH - B
+0150                  00389 UD_ENDING:
+0150   2???           00390     call complementDelays
+                      00391     
+                      00392     ;Clear timer to ensure it won't immediately roll over
+0151   014B           00393     banksel TMR0H ;Bank 11
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0152   019D           00394     clrf TMR0H
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0153   019C           00395     clrf TMR0L
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0154   179E           00396     bsf T0CON0, T0EN
+                      00397     
+                      00398     ;Clear any interrupts which occurred while we were processing
+0155   014E           00399     banksel PIR0 ;Bank 14
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 13
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
-01FA   08??           00620     movf Ch0Delay, w
-01FB   2???           00621     call sendInt
-01FC   014?           00622     banksel Ch0Delay ;Bank 0
-01FD   2???           00623     goto CMD_PROCESSED
-                      00624 ;No receive byte, check for overflow error here
-01FE                  00625 CHECK_OERR:
-01FE   0142           00626     banksel RC1STA
+0156   128C           00400     bcf PIR0, TMR0IF
+                      00401     ;banksel PIR2 ;Bank 14
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-01FF   1C9D           00627     btfss RC1STA, OERR
-0200   2???           00628     goto MAIN_LOOP
-                      00629 ;Has OERR, send NACK and clear/reset CREN to clear OERR
-0201   304E           00630     movlw CMD_NACK
-0202   2???           00631     call sendChar
-0203   0142           00632     banksel RC1STA
+0157   130E           00402     bcf PIR2, ZCDIF
+                      00403     
+                      00404     ;Finally reenable interrupts
+0158   178B           00405     bsf INTCON, GIE
+0159   0008           00406     return
+015A                  00407 UD_CH0_NE_CH1_MAX:
+                      00408     ;Could try to add logic here to turn off output immediately, but meh
+                      00409     Sub16ReLmV Delay1, MAX_DELAY, Delay0
+015A   3000               M     movlw low .8192
+015B   00??               M     movwf Tmp0
+015C   08??               M     movf Delay0, w
+015D   02??               M     subwf Tmp0, w
+015E   00??               M     movwf Delay1 ;RL = LL - VL
+015F   3020               M     movlw high .8192
+0160   00??               M     movwf Tmp0
+0161   08??               M     movf Delay0+.1, w
+0162   3B??               M     subwfb Tmp0, w
+0163   00??               M     movwf Delay1+.1 ;RH = LH - VH - B
+0164   1400           00410     bsf TurnOffDelay, 0
+0165   2???           00411     goto UD_ENDING
+                      00412     
+0166                  00413 START:
+                      00414     ;Setup analog select registers
+                      00415     ;ZCD on RA2 must have analog enabled
+0166   017E           00416     banksel ANSELA ;Bank 62
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0204   121D           00633     bcf RC1STA, CREN
+0167   01B8           00417     clrf ANSELA
 Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
-0205   161D           00634     bsf RC1STA, CREN
-0206   2???           00635     goto MAIN_LOOP
-                      00636 
-0207                  00637 CMD_PROCESSED:
-0207   304B           00638     movlw CMD_ACK
-0208   2???           00639     call sendChar
-0209   014?           00640     banksel RcvCnt ;Bank 0
-020A   01??           00641     clrf RcvCnt
-020B   2???           00642     goto MAIN_LOOP
-                      00643     
-020C                  00644 CMD_FAILED:
-020C   304E           00645     movlw CMD_NACK
-020D   2???           00646     call sendChar
-020E   014?           00647     banksel RcvCnt ;Bank 0
-020F   01??           00648     clrf RcvCnt
-0210   2???           00649     goto MAIN_LOOP
+0168   01CE           00418     clrf ANSELC
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0169   1538           00419     bsf ANSELA, ANSA2
+                      00420     ;Setup PPS outputs
+                      00421     ;0f-EUSART TX on RC4
+016A   300F           00422     movlw 0x0f
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+016B   00A4           00423     movwf RC4PPS
+                      00424     
+                      00425     ;Setup I/O Pins, all output 0 by default
+                      00426     ;RA2 is ZCD and must be input
+                      00427     ;RC5 is EUSART RX
+016C   0140           00428     banksel LATA; Bank 0
+016D   0198           00429     clrf LATA
+016E   019A           00430     clrf LATC
+016F   0192           00431     clrf TRISA
+0170   0194           00432     clrf TRISC
+0171   1512           00433     bsf TRISA, TRISA2
+0172   1694           00434     bsf TRISC, TRISC5
+                      00435     
+                      00436     ;Setup PPS inputs
+                      00437     ;EUSART TX on RC4
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 14
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00438     ;EUSART RX on RC5
+0173   017D           00439     banksel TX1CKPPS ; Bank 61
+0174   3014           00440     movlw 0x14
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0175   00CC           00441     movwf TX1CKPPS
+0176   3015           00442     movlw 0x15
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0177   00CB           00443     movwf RX1DTPPS
+                      00444     
+                      00445     ;Setup EUSART
+0178   0142           00446     banksel SP1BRGH ; Bank 2
+                      00447     ;clrf SP1BRGH ; Resets to 0
+                      00448     ;clrf SP1BRGL ; Resets to 0
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0179   161B           00449     bsf SP1BRGL, 4 ; 16
+                      00450     ;clrf BAUD1CON ; Resets to 0
+017A   3024           00451     movlw b'00100100'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+017B   009E           00452     movwf TX1STA
+017C   3090           00453     movlw b'10010000'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+017D   009D           00454     movwf RC1STA
+                      00455     
+                      00456     ;Setup Timer 0
+                      00457     ;Clk Fosc/4 8MHz
+                      00458     ;Pre 1:8 1MHz or 1us period
+                      00459     ;16 Bit enabled
+017E   014B           00460     banksel T0CON0 ; Bank 11
+                      00461     ;clrf T0CON0 ; Resets to 0
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+017F   161E           00462     bsf T0CON0, T016BIT
+0180   3043           00463     movlw b'01000011'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0181   009F           00464     movwf T0CON1
+                      00465     
+                      00466     ;Setup ZCD
+0182   0152           00467     banksel ZCDCON ; Bank 18
+0183   3083           00468     movlw b'10000011'
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0184   009F           00469     movwf ZCDCON
+                      00470     
+                      00471     ;Setup Interrupts Global Bank
+0185   170B           00472     bsf INTCON, PEIE
+                      00473     
+                      00474     ;Setup Interrupts NonGlobal Bank
+0186   014E           00475     banksel PIE0 ; Bank 14
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0187   1696           00476     bsf PIE0, TMR0IE
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0188   1718           00477     bsf PIE2, ZCDIE
+                      00478     
+0189   014?           00479     banksel RcvCnt ;Bank 0
+018A   01??           00480     clrf RcvCnt
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 15
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00481     
+                      00482     ;Set default delay values to ensure outputs turned off
+018B   014?           00483     banksel Ch0Delay
+                      00484     Load16 Ch0Delay, MAX_DELAY
+018C   3020               M     movlw high .8192
+018D   00??               M     movwf Ch0Delay+.1
+018E   3000               M     movlw low .8192
+018F   00??               M     movwf Ch0Delay
+                      00485     Load16 Ch1Delay, MAX_DELAY
+0190   3020               M     movlw high .8192
+0191   00??               M     movwf Ch1Delay+.1
+0192   3000               M     movlw low .8192
+0193   00??               M     movwf Ch1Delay
+0194   2???           00486     call updateDelays
+                      00487     
+0195                  00488 MAIN_LOOP:
+0195   014E           00489     banksel PIR3 ; Bank 14
+                      00490 ;Check if we have a receive byte
+                      00491 ;if PIR3.RC1IF
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0196   1E8F           00492     btfss PIR3, RC1IF
+0197   2???           00493     goto CHECK_OERR
+                      00494 ;We have a receive byte
+                      00495 ;Check for framing error on this byte
+0198   0142           00496     banksel RC1STA ; Bank 2
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0199   1D1D           00497     btfss RC1STA, FERR
+019A   2???           00498     goto NO_FERR
+                      00499 ;Has FERR, read byte, reset receive count, send NACK
+                      00500     ;banksel RC1REG ; Bank 2 already selected
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+019B   0899           00501     movf RC1REG, f
+019C   014?           00502     banksel Rx ;Bank 0
+019D   08??           00503     movf Rx, f
+019E   1D03           00504     btfss STATUS, Z
+019F   2???           00505     goto CMD_FAILED
+01A0   08??           00506     movf RcvCnt, f
+01A1   1D03           00507     btfss STATUS, Z
+01A2   2???           00508     goto CMD_FAILED
+01A3   2???           00509     goto MAIN_LOOP
+01A4                  00510 NO_FERR:
+                      00511     ;banksel RC1REG ; Bank 2 already selected
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+01A4   0819           00512     movf RC1REG, w
+01A5   014?           00513     banksel Rx ;Bank 0
+01A6   00??           00514     movwf Rx
+                      00515     ;First check for Start Byte no matter RcvCnt
+01A7   3053           00516     movlw CMD_START
+01A8   02??           00517     subwf Rx, w
+01A9   1D03           00518     btfss STATUS, Z
+01AA   2???           00519     goto NOT_START_BYTE
+                      00520     ;So we got a start byte, check if RcvCnt is 0
+01AB   304E           00521     movlw CMD_NACK
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 16
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01AC   08??           00522     movf RcvCnt, f
+01AD   1D03           00523     btfss STATUS, Z
+01AE   2???           00524     call sendChar ;Send NACK if RcvCnt was not 0
+01AF   014?           00525     banksel RcvCnt ;Bank 0
+01B0   01??           00526     clrf RcvCnt
+01B1   0A??           00527     incf RcvCnt, f
+01B2   2???           00528     goto MAIN_LOOP
+01B3                  00529 NOT_START_BYTE:
+01B3   3007           00530     movlw 0x07
+01B4   05??           00531     andwf RcvCnt, w ; mask in first 3 bits just in case
+01B5   0A??           00532     incf RcvCnt, f
+01B6   000B           00533     brw
+01B7   2???           00534     goto RCV_CNT_0
+01B8   2???           00535     goto RCV_CNT_1
+01B9   2???           00536     goto RCV_CNT_2
+01BA   2???           00537     goto RCV_CNT_3
+01BB   2???           00538     goto RCV_CNT_4
+01BC   2???           00539     goto RCV_CNT_5
+01BD   2???           00540     goto RCV_CNT_6
+                      00541 ;Default RcvCnt 6 or 7 means we've received too much, should never happen
+01BE                  00542 RCV_CNT_0:
+                      00543     ;If we got here we know this isn't a start byte
+                      00544     ;Check for break character
+01BE   08??           00545     movf Rx, f
+01BF   1D03           00546     btfss STATUS, Z
+01C0   2???           00547     goto CMD_FAILED
+01C1   01??           00548     clrf RcvCnt
+01C2   2???           00549     goto MAIN_LOOP
+01C3                  00550 RCV_CNT_1:
+                      00551     ;This is the high nibble of the command byte
+01C3   08??           00552     movf Rx, w
+01C4   2???           00553     call hexToNibble
+01C5   00??           00554     movwf Cmd
+01C6   0E??           00555     swapf Cmd, f
+01C7   2???           00556     goto MAIN_LOOP
+01C8                  00557 RCV_CNT_2:
+                      00558     ;This is the low nibble of the command byte
+01C8   08??           00559     movf Rx, w
+01C9   2???           00560     call hexToNibble
+01CA   07??           00561     addwf Cmd, f
+                      00562     ;First check that command is within range
+01CB   3003           00563     movlw CMD_MAX+.1
+01CC   02??           00564     subwf Cmd, w ;Cmd - (CMD_MAX+1)
+                      00565     ;This should generate Borrow or ~C if Cmd <= CMD_MAX
+01CD   1803           00566     btfsc STATUS, C
+01CE   2???           00567     goto CMD_FAILED ;Cmd > CMD_MAX
+01CF   2???           00568     goto MAIN_LOOP ;Cmd <= CMD_MAX
+01D0                  00569 RCV_CNT_3:
+                      00570     ;This is the high nibble of the high param value
+01D0   08??           00571     movf Rx, w
+01D1   2???           00572     call hexToNibble
+01D2   00??           00573     movwf CmdVal+.1
+01D3   0E??           00574     swapf CmdVal+.1, f
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 17
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01D4   2???           00575     goto MAIN_LOOP
+01D5                  00576 RCV_CNT_4:
+                      00577     ;This is the low nibble of the high param value
+01D5   08??           00578     movf Rx, w
+01D6   2???           00579     call hexToNibble
+01D7   07??           00580     addwf CmdVal+.1, f
+01D8   2???           00581     goto MAIN_LOOP
+01D9                  00582 RCV_CNT_5:
+                      00583     ;This is the high nibble of the low param value
+01D9   08??           00584     movf Rx, w
+01DA   2???           00585     call hexToNibble
+01DB   00??           00586     movwf CmdVal
+01DC   0E??           00587     swapf CmdVal, f
+01DD   2???           00588     goto MAIN_LOOP
+01DE                  00589 RCV_CNT_6:
+                      00590     ;This is the low nibble of the low param value
+01DE   08??           00591     movf Rx, w
+01DF   2???           00592     call hexToNibble
+01E0   07??           00593     addwf CmdVal, f
+                      00594 ;We've already validated Cmd is <= CMD_MAX, so let's just start processing
+01E1   08??           00595     movf Cmd, w
+                      00596 ;Might as well do this now since all paths ahead need it
+                      00597     ;banksel Ch0Delay ; Bank 0 already set
+01E2   000B           00598     brw
+01E3   2???           00599     goto SET_CH0
+01E4   2???           00600     goto SET_CH1
+                      00601 ;if more commands are added, change this to goto ACTIVATE
+01E5                  00602 ACTIVATE:
+01E5   2???           00603     call updateDelays
+01E6   2???           00604     goto CMD_PROCESSED
+01E7                  00605 SET_CH1:
+                      00606     ;banksel Ch1Delay ; Bank 0 already set
+                      00607     Cmp16VtoL CmdVal, MAX_DELAY
+                          M     Copy16 Tmp16a, CmdVal
+01E7   08??               M     movf CmdVal, w
+01E8   00??               M     movwf Tmp16a
+01E9   08??               M     movf CmdVal+.1, w
+01EA   00??               M     movwf Tmp16a+.1
+                          M     Load16 Tmp16b, .8192
+01EB   3020               M     movlw high .8192
+01EC   00??               M     movwf Tmp16b+.1
+01ED   3000               M     movlw low .8192
+01EE   00??               M     movwf Tmp16b
+01EF   2???               M     call compare16s
+01F0   1809           00608     btfsc WREG, CMP_16_GT_BIT
+01F1   2???           00609     goto CMD_FAILED
+                      00610     Copy16 Ch1Delay, CmdVal
+01F2   08??               M     movf CmdVal, w
+01F3   00??               M     movwf Ch1Delay
+01F4   08??               M     movf CmdVal+.1, w
+01F5   00??               M     movwf Ch1Delay+.1
+01F6   08??           00611     movf Ch1Delay+.1, w
+01F7   2???           00612     call sendInt
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 18
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01F8   014?           00613     banksel Ch1Delay ;Bank 0
+01F9   08??           00614     movf Ch1Delay, w
+01FA   2???           00615     call sendInt
+01FB   014?           00616     banksel Ch1Delay ;Bank 0
+01FC   2???           00617     goto CMD_PROCESSED
+01FD                  00618 SET_CH0:
+                      00619     ;banksel Ch0Delay ; Bank 0 already set
+                      00620     Cmp16VtoL CmdVal, MAX_DELAY
+                          M     Copy16 Tmp16a, CmdVal
+01FD   08??               M     movf CmdVal, w
+01FE   00??               M     movwf Tmp16a
+01FF   08??               M     movf CmdVal+.1, w
+0200   00??               M     movwf Tmp16a+.1
+                          M     Load16 Tmp16b, .8192
+0201   3020               M     movlw high .8192
+0202   00??               M     movwf Tmp16b+.1
+0203   3000               M     movlw low .8192
+0204   00??               M     movwf Tmp16b
+0205   2???               M     call compare16s
+0206   1809           00621     btfsc WREG, CMP_16_GT_BIT
+0207   2???           00622     goto CMD_FAILED
+                      00623     Copy16 Ch0Delay, CmdVal
+0208   08??               M     movf CmdVal, w
+0209   00??               M     movwf Ch0Delay
+020A   08??               M     movf CmdVal+.1, w
+020B   00??               M     movwf Ch0Delay+.1
+020C   08??           00624     movf Ch0Delay+.1, w
+020D   2???           00625     call sendInt
+020E   014?           00626     banksel Ch0Delay ;Bank 0
+020F   08??           00627     movf Ch0Delay, w
+0210   2???           00628     call sendInt
+0211   014?           00629     banksel Ch0Delay ;Bank 0
+0212   2???           00630     goto CMD_PROCESSED
+                      00631 ;No receive byte, check for overflow error here
+0213                  00632 CHECK_OERR:
+0213   0142           00633     banksel RC1STA
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0214   1C9D           00634     btfss RC1STA, OERR
+0215   2???           00635     goto MAIN_LOOP
+                      00636 ;Has OERR, send NACK and clear/reset CREN to clear OERR
+0216   304E           00637     movlw CMD_NACK
+0217   2???           00638     call sendChar
+0218   0142           00639     banksel RC1STA
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+0219   121D           00640     bcf RC1STA, CREN
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+021A   161D           00641     bsf RC1STA, CREN
+021B   2???           00642     goto MAIN_LOOP
+                      00643 
+021C                  00644 CMD_PROCESSED:
+021C   304B           00645     movlw CMD_ACK
+021D   2???           00646     call sendChar
+021E   014?           00647     banksel RcvCnt ;Bank 0
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 19
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+021F   01??           00648     clrf RcvCnt
+0220   2???           00649     goto MAIN_LOOP
                       00650     
-                      00651     END
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 19
+0221                  00651 CMD_FAILED:
+0221   304E           00652     movlw CMD_NACK
+0222   2???           00653     call sendChar
+0223   014?           00654     banksel RcvCnt ;Bank 0
+0224   01??           00655     clrf RcvCnt
+0225   2???           00656     goto MAIN_LOOP
+                      00657     
+                      00658     END
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 20
 
 
 SYMBOL TABLE
@@ -1054,7 +1089,7 @@ ACKDT                             00000005
 ACKEN                             00000004
 ACKSTAT                           00000006
 ACKTIM                            00000007
-ACTIVATE                          000001D0
+ACTIVATE                          000001E5
 ADACT                             0000009F
 ADACT0                            00000000
 ADACT1                            00000001
@@ -1101,7 +1136,7 @@ ADRESH5                           00000005
 ADRESH6                           00000006
 ADRESH7                           00000007
 ADRESL                            0000009B
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 20
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 21
 
 
 SYMBOL TABLE
@@ -1160,7 +1195,7 @@ BSR5                              00000005
 BSR_SHAD                          00001FE6
 C                                 00000000
 C1EN                              00000007
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 21
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 22
 
 
 SYMBOL TABLE
@@ -1219,7 +1254,7 @@ CCP1PPS0                          00000000
 CCP1PPS1                          00000001
 CCP1PPS2                          00000002
 CCP1PPS3                          00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 22
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 23
 
 
 SYMBOL TABLE
@@ -1265,7 +1300,7 @@ CH0_BIT                           LATA4
 CH0_REG                           LATA
 CH1_BIT                           LATA5
 CH1_REG                           LATA
-CHECK_OERR                        000001FE
+CHECK_OERR                        00000213
 CHS0                              00000002
 CHS1                              00000003
 CHS2                              00000004
@@ -1278,7 +1313,7 @@ CKPOL                             00000006
 CKPS0                             00000004
 CKPS1                             00000005
 CKPS2                             00000006
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 23
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 24
 
 
 SYMBOL TABLE
@@ -1337,7 +1372,7 @@ CLC4SEL0                          00001E30
 CLC4SEL1                          00001E31
 CLC4SEL2                          00001E32
 CLC4SEL3                          00001E33
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 24
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 25
 
 
 SYMBOL TABLE
@@ -1395,8 +1430,8 @@ CM2NCH                            00000996
 CM2PCH                            00000997
 CMD_ACK                           a'K'
 CMD_ACTIVATE                      .2
-CMD_FAILED                        0000020C
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 25
+CMD_FAILED                        00000221
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 26
 
 
 SYMBOL TABLE
@@ -1404,7 +1439,7 @@ SYMBOL TABLE
 
 CMD_MAX                           .2
 CMD_NACK                          a'N'
-CMD_PROCESSED                     00000207
+CMD_PROCESSED                     0000021C
 CMD_SET_CH0                       .0
 CMD_SET_CH1                       .1
 CMD_START                         a'S'
@@ -1455,7 +1490,7 @@ CWG1DBF2                          00000002
 CWG1DBF3                          00000003
 CWG1DBF4                          00000004
 CWG1DBF5                          00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 26
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 27
 
 
 SYMBOL TABLE
@@ -1514,7 +1549,7 @@ Copy16
 CurrentDelay                      0000000C
 D1N                               00000000
 D1S0                              00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 27
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 28
 
 
 SYMBOL TABLE
@@ -1573,7 +1608,7 @@ DBF4                              00000004
 DBF5                              00000005
 DBR0                              00000000
 DBR1                              00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 28
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 29
 
 
 SYMBOL TABLE
@@ -1632,7 +1667,7 @@ FVRMD                             00000006
 FVRRDY                            00000006
 G1EN                              00000007
 G1POL                             00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 29
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 30
 
 
 SYMBOL TABLE
@@ -1691,7 +1726,7 @@ INLVLA3                           00000003
 INLVLA4                           00000004
 INLVLA5                           00000005
 INLVLC                            00001F52
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 30
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 31
 
 
 SYMBOL TABLE
@@ -1750,7 +1785,7 @@ IOCAP5                            00000005
 IOCCF                             00001F55
 IOCCF0                            00000000
 IOCCF1                            00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 31
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 32
 
 
 SYMBOL TABLE
@@ -1809,7 +1844,7 @@ LC1D2S4                           00000004
 LC1D2S5                           00000005
 LC1D3S0                           00000000
 LC1D3S1                           00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 32
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 33
 
 
 SYMBOL TABLE
@@ -1868,7 +1903,7 @@ LC1MODE0                          00000000
 LC1MODE1                          00000001
 LC1MODE2                          00000002
 LC1OUT                            00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 33
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 34
 
 
 SYMBOL TABLE
@@ -1927,7 +1962,7 @@ LC2G3D3T                          00000005
 LC2G3D4N                          00000006
 LC2G3D4T                          00000007
 LC2G3POL                          00000002
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 34
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 35
 
 
 SYMBOL TABLE
@@ -1986,7 +2021,7 @@ LC3G1POL                          00000000
 LC3G2D1N                          00000000
 LC3G2D1T                          00000001
 LC3G2D2N                          00000002
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 35
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 36
 
 
 SYMBOL TABLE
@@ -2045,7 +2080,7 @@ LC4D4S0                           00000000
 LC4D4S1                           00000001
 LC4D4S2                           00000002
 LC4D4S3                           00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 36
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 37
 
 
 SYMBOL TABLE
@@ -2104,7 +2139,7 @@ LSAC0                             00000002
 LSAC1                             00000003
 LSBD0                             00000004
 LSBD1                             00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 37
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 38
 
 
 SYMBOL TABLE
@@ -2112,7 +2147,7 @@ SYMBOL TABLE
 
 LWLO                              00000005
 Load16                            
-MAIN_LOOP                         00000180
+MAIN_LOOP                         00000195
 MAX_DELAY                         .8192
 MC1OUT                            00000000
 MC2OUT                            00000001
@@ -2163,7 +2198,7 @@ NCO1ACC16                         00000000
 NCO1ACC17                         00000001
 NCO1ACC18                         00000002
 NCO1ACC19                         00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 38
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 39
 
 
 SYMBOL TABLE
@@ -2222,7 +2257,7 @@ NOSCR                             00000003
 NOT_A                             00000005
 NOT_ADDRESS                       00000005
 NOT_BOR                           00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 39
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 40
 
 
 SYMBOL TABLE
@@ -2234,14 +2269,14 @@ NOT_POR                           00000001
 NOT_RI                            00000002
 NOT_RMCLR                         00000003
 NOT_RWDT                          00000004
-NOT_START_BYTE                    0000019E
+NOT_START_BYTE                    000001B3
 NOT_SYNC                          00000002
 NOT_T1SYNC                        00000002
 NOT_TO                            00000004
 NOT_W                             00000002
 NOT_WDTWV                         00000005
 NOT_WRITE                         00000002
-NO_FERR                           0000018F
+NO_FERR                           000001A4
 NSS                               00000000
 NVMADR                            0000081A
 NVMADRH                           0000081B
@@ -2281,7 +2316,7 @@ NVMDATL5                          00000005
 NVMDATL6                          00000006
 NVMDATL7                          00000007
 NVMIE                             00000005
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 40
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 41
 
 
 SYMBOL TABLE
@@ -2340,7 +2375,7 @@ OVRC                              00000006
 OVRD                              00000007
 P                                 00000004
 PCH0                              00000000
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 41
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 42
 
 
 SYMBOL TABLE
@@ -2399,7 +2434,7 @@ PPSLOCK                           00001E8F
 PPSLOCKED                         00000000
 PR0                               0000059D
 PR1                               0000020F
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 42
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 43
 
 
 SYMBOL TABLE
@@ -2458,7 +2493,7 @@ PWM4DC7                           00000005
 PWM4DC8                           00000006
 PWM4DC9                           00000007
 PWM4DCH                           00000319
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 43
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 44
 
 
 SYMBOL TABLE
@@ -2517,7 +2552,7 @@ PWMPW8                            00000006
 PWMPW9                            00000007
 RA0                               00000000
 RA0PPS                            00001F10
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 44
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 45
 
 
 SYMBOL TABLE
@@ -2576,7 +2611,7 @@ RC1IF                             00000005
 RC1PPS                            00001F21
 RC1PPS0                           00000000
 RC1PPS1                           00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 45
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 46
 
 
 SYMBOL TABLE
@@ -2621,13 +2656,13 @@ RCREG                             00000119
 RCREG1                            00000119
 RCSTA                             0000011D
 RCSTA1                            0000011D
-RCV_CNT_0                         000001A9
-RCV_CNT_1                         000001AE
-RCV_CNT_2                         000001B3
-RCV_CNT_3                         000001BB
-RCV_CNT_4                         000001C0
-RCV_CNT_5                         000001C4
-RCV_CNT_6                         000001C9
+RCV_CNT_0                         000001BE
+RCV_CNT_1                         000001C3
+RCV_CNT_2                         000001C8
+RCV_CNT_3                         000001D0
+RCV_CNT_4                         000001D5
+RCV_CNT_5                         000001D9
+RCV_CNT_6                         000001DE
 RD                                00000000
 RD16                              00000001
 READ_WRITE                        00000002
@@ -2635,7 +2670,7 @@ REN                               00000006
 ROI                               00000005
 RSEL0                             00000000
 RSEL1                             00000001
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 46
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 47
 
 
 SYMBOL TABLE
@@ -2665,8 +2700,8 @@ SCKP                              00000004
 SDAHT                             00000003
 SEN                               00000000
 SENDB                             00000003
-SET_CH0                           000001E8
-SET_CH1                           000001D2
+SET_CH0                           000001FD
+SET_CH1                           000001E7
 SHUTDOWN                          00000007
 SLRA0                             00000000
 SLRA1                             00000001
@@ -2694,7 +2729,7 @@ SPEN                              00000007
 SREN                              00000005
 SSP1ADD                           0000018D
 SSP1BUF                           0000018C
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 47
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 48
 
 
 SYMBOL TABLE
@@ -2734,7 +2769,7 @@ SSPM1                             00000001
 SSPM2                             00000002
 SSPM3                             00000003
 SSPOV                             00000006
-START                             00000151
+START                             00000166
 STATE                             00000002
 STATUS                            00000003
 STATUS_SHAD                       00001FE4
@@ -2753,7 +2788,7 @@ STRA                              00000000
 STRB                              00000001
 STRC                              00000002
 STRD                              00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 48
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 49
 
 
 SYMBOL TABLE
@@ -2812,7 +2847,7 @@ T1CKIPPS3                         00000003
 T1CKIPPS4                         00000004
 T1CKIPPS5                         00000005
 T1CKPS0                           00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 49
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 50
 
 
 SYMBOL TABLE
@@ -2871,7 +2906,7 @@ T2MODE1                           00000001
 T2MODE2                           00000002
 T2MODE3                           00000003
 T2MODE4                           00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 50
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 51
 
 
 SYMBOL TABLE
@@ -2930,7 +2965,7 @@ TMR17                             00000007
 TMR18                             00000000
 TMR19                             00000001
 TMR1CLK                           00000211
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 51
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 52
 
 
 SYMBOL TABLE
@@ -2989,7 +3024,7 @@ TRISA0                            00000000
 TRISA1                            00000001
 TRISA2                            00000002
 TRISA4                            00000004
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 52
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 53
 
 
 SYMBOL TABLE
@@ -3034,21 +3069,21 @@ TurnOn0                           00000009
 TurnOn1                           0000000A
 UA                                00000001
 UART1MD                           00000006
-UD_BOTH_MAX                       000000F2
-UD_BOTH_NE_0                      000000CA
-UD_CH0_LT_CH1                     00000119
-UD_CH0_NE_0                       000000AC
-UD_CH0_NE_CH1                     000000F5
-UD_CH0_NE_CH1_MAX                 00000144
+UD_BOTH_MAX                       00000108
+UD_BOTH_NE_0                      000000E0
+UD_CH0_LT_CH1                     0000012F
+UD_CH0_NE_0                       000000B7
+UD_CH0_NE_CH1                     0000010B
+UD_CH0_NE_CH1_MAX                 0000015A
 UD_CH1_NE_0                       0000009B
-UD_ENDING                         0000013A
+UD_ENDING                         00000150
 UNDER_10                          00000042
 W                                 00000000
 WAIT                              00000046
 WCOL                              00000007
 WDTCON0                           0000080C
 WDTCON1                           0000080D
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 53
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 54
 
 
 SYMBOL TABLE
@@ -3107,7 +3142,7 @@ WPUC0                             00000000
 WPUC1                             00000001
 WPUC2                             00000002
 WPUC3                             00000003
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 54
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 55
 
 
 SYMBOL TABLE
@@ -3166,7 +3201,7 @@ _FEXTOSC_ECL                      00003FFD
 _FEXTOSC_ECM                      00003FFE
 _FEXTOSC_HS                       00003FFA
 _FEXTOSC_LP                       00003FF8
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 55
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 56
 
 
 SYMBOL TABLE
@@ -3225,7 +3260,7 @@ _WDTCPS_WDTCPS_24                 00003FF8
 _WDTCPS_WDTCPS_25                 00003FF9
 _WDTCPS_WDTCPS_26                 00003FFA
 _WDTCPS_WDTCPS_27                 00003FFB
-MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-7-2019  22:28:41         PAGE 56
+MPASM 5.84  /USERS/CRAIG/MPLABXPROJECTS/AC-D   8-8-2019  21:33:09         PAGE 57
 
 
 SYMBOL TABLE
