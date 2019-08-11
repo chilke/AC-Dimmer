@@ -1,4 +1,4 @@
-;TODO - Test pretty much everything
+;TODO - Test interrupts on device
 ;TODO - Refactor ports used to match 8 pin package
 ;       EUSART shares ICSP pins RA0/RA1
 ;       ZCD remains the same RA2
@@ -58,66 +58,68 @@ RESET_VECT CODE 0x0000
    
 ISR_VECT CODE 0x0004
 ISR:
-   banksel PIR2 ;Bank 14
-   btfss PIR2, ZCDIF
-   goto ISR_NO_ZCD
-   bcf PIR2, ZCDIF
-   banksel TMR0H ;Bank 11
-   movf Delay0+.1, w
-   movwf TMR0H
-   movf Delay0, w
-   movwf TMR0L
-   clrf CurrentDelay
-   retfie
+    banksel PIR2 ;Bank 14
+;    btfss PIR2, ZCDIF
+    btfss PIR0, IOCIF
+    goto ISR_NO_ZCD
+    bcf PIR2, ZCDIF
+    banksel TMR0H ;Bank 11
+    movf Delay0+.1, w
+    movwf TMR0H
+    movf Delay0, w
+    movwf TMR0L
+    clrf CurrentDelay
+    banksel IOCCF
+    bcf IOCCF, IOCCF0
+    retfie
 ISR_NO_ZCD:
-   ;banksel PIR0 ;Bank 14
-   bcf PIR0, TMR0IF
-   movf CurrentDelay, w
-   incf CurrentDelay, f
-   banksel TMR0H
-   brw
-   goto ISR_CD_0
-   goto ISR_CD_1
+    ;banksel PIR0 ;Bank 14
+    bcf PIR0, TMR0IF
+    movf CurrentDelay, w
+    incf CurrentDelay, f
+    banksel TMR0H
+    brw
+    goto ISR_CD_0
+    goto ISR_CD_1
 ISR_CD_2:
-   ;banksel TMR0H ;Bank 11
-   clrf TMR0H
-   clrf TMR0L
-   banksel CH0_REG ;Bank 0
-   btfss AlwaysOn, 0
-   bcf CH0_REG, CH0_BIT
-   btfss AlwaysOn, 1
-   bcf CH1_REG, CH1_BIT
-   retfie
+    ;Just in case something goes wrong with ZCD, lets stay locked here
+    decf CurrentDelay, f
+    banksel CH0_REG ;Bank 0
+    btfss AlwaysOn, 0
+    bcf CH0_REG, CH0_BIT
+    btfss AlwaysOn, 1
+    bcf CH1_REG, CH1_BIT
+    retfie
 ISR_CD_1:
-   ;banksel TMR0H ;Bank 11
-   movf Delay2+.1, w
-   movwf TMR0H
-   movf Delay2, w
-   movwf TMR0L
-   banksel CH0_REG ;Bank 0
-   btfsc TurnOn1, 0
-   bsf CH0_REG, CH0_BIT
-   btfsc TurnOn1, 1
-   bsf CH1_REG, CH1_BIT
-   btfss TurnOffDelay, 0
-   retfie
-   btfss AlwaysOn, 0
-   bcf CH0_REG, CH0_BIT
-   btfss AlwaysOn, 1
-   bcf CH1_REG, CH1_BIT
-   retfie
+    ;banksel TMR0H ;Bank 11
+    movf Delay2+.1, w
+    movwf TMR0H
+    movf Delay2, w
+    movwf TMR0L
+    banksel CH0_REG ;Bank 0
+    btfsc TurnOn1, 0
+    bsf CH0_REG, CH0_BIT
+    btfsc TurnOn1, 1
+    bsf CH1_REG, CH1_BIT
+    btfss TurnOffDelay, 0
+    retfie
+    btfss AlwaysOn, 0
+    bcf CH0_REG, CH0_BIT
+    btfss AlwaysOn, 1
+    bcf CH1_REG, CH1_BIT
+    retfie
 ISR_CD_0:
-   ;banksel TMR0H ;Bank 11
-   movf Delay1+.1, w
-   movwf TMR0H
-   movf Delay1, w
-   movwf TMR0L
-   banksel CH0_REG ;Bank 0
-   btfsc TurnOn0, 0
-   bsf CH0_REG, CH0_BIT
-   btfsc TurnOn0, 1
-   bsf CH1_REG, CH1_BIT
-   retfie
+    ;banksel TMR0H ;Bank 11
+    movf Delay1+.1, w
+    movwf TMR0H
+    movf Delay1, w
+    movwf TMR0L
+    banksel CH0_REG ;Bank 0
+    btfsc TurnOn0, 0
+    bsf CH0_REG, CH0_BIT
+    btfsc TurnOn0, 1
+    bsf CH1_REG, CH1_BIT
+    retfie
 ;End interrupt routine
 
 ;nibbleToHex
@@ -432,6 +434,7 @@ START:
     clrf TRISC
     bsf TRISA, TRISA2
     bsf TRISC, TRISC5
+    bsf TRISC, TRISC0
     
     ;Setup PPS inputs
     ;EUSART TX on RC4
@@ -468,6 +471,12 @@ START:
     movlw b'10000011'
     movwf ZCDCON
     
+    ;Setup IOC
+    banksel IOCCP
+    bsf IOCCP, IOCCP0
+    banksel IOCCN
+    bsf IOCCN, IOCCN0
+    
     ;Setup Interrupts Global Bank
     bsf INTCON, PEIE
     
@@ -475,15 +484,18 @@ START:
     banksel PIE0 ; Bank 14
     bsf PIE0, TMR0IE
     bsf PIE2, ZCDIE
+    bsf PIE0, IOCIE
     
     banksel RcvCnt ;Bank 0
     clrf RcvCnt
     
-    ;Set default delay values to ensure outputs turned off
+    ;Set max delay values to ensure outputs turned off
     banksel Ch0Delay
     Load16 Ch0Delay, MAX_DELAY
     Load16 Ch1Delay, MAX_DELAY
     call updateDelays
+    
+    bsf INTCON, GIE
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
