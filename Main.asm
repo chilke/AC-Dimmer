@@ -280,6 +280,10 @@ updateDelays:
     banksel T0CON0 ;Bank 11
     bcf T0CON0, T0EN
     
+    banksel CH0_REG ;Bank 0
+    bcf CH0_REG, CH0_BIT
+    bcf CH1_REG, CH1_BIT
+    
     ;Clear some stuff
     ;banksel TurnOn0 ;Shared Bank
     clrf TurnOffDelay
@@ -351,19 +355,13 @@ UD_BOTH_NE_0:
     goto UD_CH0_NE_CH1
     Cmp16VtoL Ch0Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
-    goto UD_BOTH_MAX
+    return
     Copy16 Delay0, Ch0Delay
     bsf TurnOn0, 0
     bsf TurnOn0, 1
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
     bsf TurnOffDelay, 0
     goto UD_ENDING
-UD_BOTH_MAX:
-    ;Both channels are always off, lets turn them off and be done with this
-    ;banksel CH0_REG ;Bank 0
-    bcf CH0_REG, CH0_BIT
-    bcf CH1_REG, CH1_BIT
-    return
 UD_CH0_NE_CH1:
     ;WREG still contains results of CH0Delay cmp to Ch1Delay
     btfss WREG, CMP_16_GT_BIT
@@ -494,8 +492,6 @@ START:
     Load16 Ch0Delay, MAX_DELAY
     Load16 Ch1Delay, MAX_DELAY
     call updateDelays
-    
-    bsf INTCON, GIE
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
