@@ -10,6 +10,7 @@
 #define F0_ALWAYS_ON_CH1 7
     
 #define F1_TURN_OFF_2 0
+#define F1_UPDATE_DELAYS 1
     
 #define CH0_REG LATA
 #define CH1_REG LATA

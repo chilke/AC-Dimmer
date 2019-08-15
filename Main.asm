@@ -136,7 +136,6 @@ ZCD_LOW:
     banksel ZCD_REG
     bcf ZCD_REG, ZCD_BIT
     retfie
-    retfie
 ;End interrupt routine
 
 ;nibbleToHex
@@ -415,9 +414,14 @@ UD_ENDING:
     bcf PIR0, TMR0IF
     ;banksel PIR2 ;Bank 14
     bcf PIR2, ZCDIF
+    bcf PIR0, IOCIF
     
     ;Finally reenable interrupts
-    bsf INTCON, GIE
+    banksel PIE0 ; Bank 14
+    bsf PIE0, TMR0IE
+    bsf PIE2, ZCDIE
+    bsf PIE0, IOCIE
+    
     return
 UD_CH0_NE_CH1_MAX:
     ;Could try to add logic here to turn off output immediately, but meh
@@ -491,21 +495,16 @@ START:
     
     ;Setup Interrupts Global Bank
     bsf INTCON, PEIE
+    bsf INTCON, GIE
     
     ;Setup Interrupts NonGlobal Bank
-    banksel PIE0 ; Bank 14
-    bsf PIE0, TMR0IE
-    bsf PIE2, ZCDIE
-    bsf PIE0, IOCIE
+;    banksel PIE0 ; Bank 14
+;    bsf PIE0, TMR0IE
+;    bsf PIE2, ZCDIE
+;    bsf PIE0, IOCIE
     
     banksel RcvCnt ;Bank 0
     clrf RcvCnt
-    
-    ;Set max delay values to ensure outputs turned off
-    banksel Ch0Delay
-    Load16 Ch0Delay, MAX_DELAY
-    Load16 Ch1Delay, MAX_DELAY
-    call updateDelays
     
 MAIN_LOOP:
     banksel PIR3 ; Bank 14
@@ -622,7 +621,17 @@ RCV_CNT_6:
     goto SET_CH1
 ;if more commands are added, change this to goto ACTIVATE
 ACTIVATE:
-    call updateDelays
+    ;Set flag to indicate we need to update delays
+    bsf Flags1, F1_UPDATE_DELAYS
+    ;Make sure if interrupts were disabled that we don't have a long
+    ;	unserviced interrupt flag
+    banksel PIR0
+    bcf PIR0, IOCIF
+    bcf PIR2, ZCDIF
+    ;Finally enable interrupts to be sure we catch the next ZC event
+    banksel PIE0
+    bsf PIE0, IOCIE
+    bsf PIE2, ZCDIE
     goto CMD_PROCESSED
 SET_CH1:
     ;banksel Ch1Delay ; Bank 0 already set
