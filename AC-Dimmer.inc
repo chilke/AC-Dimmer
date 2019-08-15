@@ -1,8 +1,25 @@
 
+#define F0_CUR_DELAY_MASK 0x3
+#define F0_CUR_DELAY_0 0
+#define F0_CUR_DELAY_1 1
+#define F0_TURN_ON_0_CH0 2
+#define F0_TURN_ON_0_CH1 3
+#define F0_TURN_ON_1_CH0 4
+#define F0_TURN_ON_1_CH1 5
+#define F0_ALWAYS_ON_CH0 6
+#define F0_ALWAYS_ON_CH1 7
+    
+#define F1_TURN_OFF_2 0
+    
 #define CH0_REG LATA
 #define CH1_REG LATA
 #define CH0_BIT LATA4
 #define CH1_BIT LATA5
+   
+#define ZCD_OFFSET_DELAY 0xFF74 ;Complement 140
+    
+#define ZCD_REG LATC
+#define ZCD_BIT LATC2
     
 #define CMP_16_GT 1
 #define CMP_16_EQ 2

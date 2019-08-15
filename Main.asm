@@ -29,11 +29,8 @@ Delay0		res 2 ;5
 Delay1		res 2 ;7
 Delay2		res 2 ;9
 	
-TurnOn0		res 1 ;A
-TurnOn1		res 1 ;B
-AlwaysOn	res 1 ;C
-CurrentDelay	res 1 ;D
-TurnOffDelay	res 1 ;E
+Flags0		res 1 ;B
+Flags1		res 1 ;C
 
 ;Load16 - load the 16 bit literal h,l into v
 ;Bank for v must be selected
@@ -63,59 +60,79 @@ ISR:
     goto ISR_NO_ZCD
     bcf PIR2, ZCDIF
     banksel TMR0H ;Bank 11
-    movf Delay0+.1, w
+    movlw high ZCD_OFFSET_DELAY
     movwf TMR0H
-    movf Delay0, w
+    movlw low ZCD_OFFSET_DELAY
     movwf TMR0L
-    clrf CurrentDelay
+    movlw ~F0_CUR_DELAY_MASK
+    andwf Flags0, f
     retfie
 ISR_NO_ZCD:
     ;banksel PIR0 ;Bank 14
     bcf PIR0, TMR0IF
-    movf CurrentDelay, w
-    incf CurrentDelay, f
-    banksel TMR0H
+    movlw F0_CUR_DELAY_MASK
+    andwf Flags0, w
+    banksel TMR0H ;Bank 11
     brw
     goto ISR_CD_0
     goto ISR_CD_1
-ISR_CD_2:
-    ;Just in case something goes wrong with ZCD, lets stay locked here
-    decf CurrentDelay, f
+    goto ISR_CD_2
+ISR_CD_3:
     banksel CH0_REG ;Bank 0
-    btfss AlwaysOn, 0
+    btfss Flags0, F0_ALWAYS_ON_CH0
     bcf CH0_REG, CH0_BIT
-    btfss AlwaysOn, 1
+    btfss Flags0, F0_ALWAYS_ON_CH1
     bcf CH1_REG, CH1_BIT
     retfie
-ISR_CD_1:
+ISR_CD_2:
+    incf Flags0, f ;This only increments current delay
     ;banksel TMR0H ;Bank 11
     movf Delay2+.1, w
     movwf TMR0H
     movf Delay2, w
     movwf TMR0L
     banksel CH0_REG ;Bank 0
-    btfsc TurnOn1, 0
+    btfsc Flags0, F0_TURN_ON_1_CH0
     bsf CH0_REG, CH0_BIT
-    btfsc TurnOn1, 1
+    btfsc Flags0, F0_TURN_ON_1_CH1
     bsf CH1_REG, CH1_BIT
-    btfss TurnOffDelay, 0
+    btfss Flags1, F1_TURN_OFF_2
     retfie
-    btfss AlwaysOn, 0
+    btfss Flags0, F0_ALWAYS_ON_CH0
     bcf CH0_REG, CH0_BIT
-    btfss AlwaysOn, 1
+    btfss Flags0, F0_ALWAYS_ON_CH1
     bcf CH1_REG, CH1_BIT
     retfie
-ISR_CD_0:
+ISR_CD_1:
+    incf Flags0, f
     ;banksel TMR0H ;Bank 11
     movf Delay1+.1, w
     movwf TMR0H
     movf Delay1, w
     movwf TMR0L
     banksel CH0_REG ;Bank 0
-    btfsc TurnOn0, 0
+    btfsc Flags0, F0_TURN_ON_0_CH0
     bsf CH0_REG, CH0_BIT
-    btfsc TurnOn0, 1
+    btfsc Flags0, F0_TURN_ON_0_CH1
     bsf CH1_REG, CH1_BIT
+    retfie
+ISR_CD_0:
+    incf Flags0, f
+    banksel TMR0H ;Bank 11
+    movf Delay0+.1, w
+    movwf TMR0H
+    movf Delay0, w
+    movwf TMR0L
+    banksel ZCDCON
+    btfss ZCDCON, ZCDOUT
+    goto ZCD_LOW
+    banksel ZCD_REG
+    bsf ZCD_REG, ZCD_BIT
+    retfie
+ZCD_LOW:
+    banksel ZCD_REG
+    bcf ZCD_REG, ZCD_BIT
+    retfie
     retfie
 ;End interrupt routine
 
@@ -282,11 +299,9 @@ updateDelays:
     bcf CH1_REG, CH1_BIT
     
     ;Clear some stuff
-    ;banksel TurnOn0 ;Shared Bank
-    clrf TurnOffDelay
-    clrf TurnOn0
-    clrf TurnOn1
-    clrf AlwaysOn
+    ;banksel Flags0 ;Shared Bank
+    clrf Flags0
+    clrf Flags1
     clrf Delay0
     clrf Delay0+.1
     clrf Delay1
@@ -302,7 +317,7 @@ updateDelays:
     btfss WREG, CMP_16_EQ_BIT
     goto UD_CH0_NE_0
     ;Ch0Delay == 0 so it is always on
-    bsf AlwaysOn, 0
+    bsf Flags0, F0_ALWAYS_ON_CH0
     ;banksel CH0_REG ;Bank 0
     bsf CH0_REG, CH0_BIT
     ;If Ch1Delay == 0
@@ -310,7 +325,7 @@ updateDelays:
     btfss WREG, CMP_16_EQ_BIT
     goto UD_CH1_NE_0
     ;Ch1Delay == 0 so it is always on
-    bsf AlwaysOn, 1
+    bsf Flags0, F0_ALWAYS_ON_CH1
     ;banksel CH1_REG ;Bank 0
     bsf CH1_REG, CH1_BIT
     ;Both Channels are always on, might as well return now
@@ -322,9 +337,9 @@ UD_CH1_NE_0:
     return
     ;Ch0Delay == 0 and Ch1Delay != 0
     Copy16 Delay0, Ch1Delay
-    bsf TurnOn0, 1
+    bsf Flags0, F0_TURN_ON_0_CH1
     Sub16ReLmV Delay1, MAX_DELAY, Ch1Delay
-    bsf TurnOffDelay, 0
+    bsf Flags1, F1_TURN_OFF_2
     goto UD_ENDING
 UD_CH0_NE_0:
     ;If Ch1Delay == 0
@@ -332,7 +347,7 @@ UD_CH0_NE_0:
     btfss WREG, CMP_16_EQ_BIT
     goto UD_BOTH_NE_0
     ;Ch1Delay == 0 so it is always on
-    bsf AlwaysOn, 1
+    bsf Flags0, F0_ALWAYS_ON_CH1
     ;banksel CH1_REG ;Bank 0
     bsf CH1_REG, CH1_BIT
     ;Check if Ch0 is Max
@@ -341,9 +356,9 @@ UD_CH0_NE_0:
     return
     ;Ch0Delay != 0 so setup delays
     Copy16 Delay0, Ch0Delay
-    bsf TurnOn0, 0
+    bsf Flags0, F0_TURN_ON_0_CH0
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    bsf TurnOffDelay, 0
+    bsf Flags1, F1_TURN_OFF_2
     goto UD_ENDING
 UD_BOTH_NE_0:
     ;If Ch0Delay == Ch1Delay
@@ -354,10 +369,10 @@ UD_BOTH_NE_0:
     btfsc WREG, CMP_16_EQ_BIT
     return
     Copy16 Delay0, Ch0Delay
-    bsf TurnOn0, 0
-    bsf TurnOn0, 1
+    bsf Flags0, F0_TURN_ON_0_CH0
+    bsf Flags0, F0_TURN_ON_0_CH1
     Sub16ReLmV Delay1, MAX_DELAY, Ch0Delay
-    bsf TurnOffDelay, 0
+    bsf Flags1, F1_TURN_OFF_2
     goto UD_ENDING
 UD_CH0_NE_CH1:
     ;WREG still contains results of CH0Delay cmp to Ch1Delay
@@ -365,23 +380,23 @@ UD_CH0_NE_CH1:
     goto UD_CH0_LT_CH1
     ;Ch0Delay > Ch1Delay
     Copy16 Delay0, Ch1Delay
-    bsf TurnOn0, 1
+    bsf Flags0, F0_TURN_ON_0_CH1
     Cmp16VtoL Ch0Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
     goto UD_CH0_NE_CH1_MAX
     Sub16ReVmV Delay1, Ch0Delay, Ch1Delay
-    bsf TurnOn1, 0
+    bsf Flags0, F0_TURN_ON_1_CH0
     Sub16ReLmV Delay2, MAX_DELAY, Ch0Delay
     goto UD_ENDING
 UD_CH0_LT_CH1:
     ;Ch1Delay > Ch0Delay
     Copy16 Delay0, Ch0Delay
-    bsf TurnOn0, 0
+    bsf Flags0, F0_TURN_ON_0_CH0
     Cmp16VtoL Ch1Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
     goto UD_CH0_NE_CH1_MAX
     Sub16ReVmV Delay1, Ch1Delay, Ch0Delay
-    bsf TurnOn1, 1
+    bsf Flags0, F0_TURN_ON_1_CH1
     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
 UD_ENDING:
     call complementDelays
@@ -404,7 +419,7 @@ UD_ENDING:
 UD_CH0_NE_CH1_MAX:
     ;Could try to add logic here to turn off output immediately, but meh
     Sub16ReLmV Delay1, MAX_DELAY, Delay0
-    bsf TurnOffDelay, 0
+    bsf Flags1, F1_TURN_OFF_2
     goto UD_ENDING
     
 START:
