@@ -56,7 +56,8 @@ RESET_VECT CODE 0x0000
 ISR_VECT CODE 0x0004
 ISR:
     banksel PIR2 ;Bank 14
-    btfss PIR2, ZCDIF
+    ;btfss PIR2, ZCDIF
+    btfss PIR0, IOCIF
     goto ISR_NO_ZCD
     bcf PIR2, ZCDIF
     banksel TMR0H ;Bank 11
@@ -66,6 +67,8 @@ ISR:
     movwf TMR0L
     movlw ~F0_CUR_DELAY_MASK
     andwf Flags0, f
+    banksel IOCCF
+    bcf IOCCF, IOCCF0
     retfie
 ISR_NO_ZCD:
     ;banksel PIR0 ;Bank 14
@@ -480,6 +483,11 @@ START:
     banksel ZCDCON ; Bank 18
     movlw b'10000011'
     movwf ZCDCON
+
+    ;Setup IOC for Debug
+    banksel IOCCP
+    bsf IOCCP, IOCCP0
+    bsf IOCCN, IOCCN0
     
     ;Setup Interrupts Global Bank
     bsf INTCON, PEIE
@@ -488,6 +496,7 @@ START:
     banksel PIE0 ; Bank 14
     bsf PIE0, TMR0IE
     bsf PIE2, ZCDIE
+    bsf PIE0, IOCIE
     
     banksel RcvCnt ;Bank 0
     clrf RcvCnt
