@@ -56,10 +56,17 @@ RESET_VECT CODE 0x0000
 ISR_VECT CODE 0x0004
 ISR:
     banksel PIR2 ;Bank 14
-    ;btfss PIR2, ZCDIF
+#ifdef DEBUG
     btfss PIR0, IOCIF
+#else
+    btfss PIR2, ZCDIF
+#endif
     goto ISR_NO_ZCD
     bcf PIR2, ZCDIF
+#ifdef DEBUG
+    banksel IOCCF
+    bcf IOCCF, IOCCF0
+#endif
     banksel TMR0H ;Bank 11
     movlw high ZCD_OFFSET_DELAY
     movwf TMR0H
@@ -67,8 +74,12 @@ ISR:
     movwf TMR0L
     movlw ~F0_CUR_DELAY_MASK
     andwf Flags0, f
-    banksel IOCCF
-    bcf IOCCF, IOCCF0
+    btfss Flags1, F1_UPDATE_DELAYS
+    retfie
+    ;banksel T0CON0 ;Bank 11 Already selected
+    bsf T0CON0, T0EN
+    call updateDelays
+    bcf Flags1, F1_UPDATE_DELAYS
     retfie
 ISR_NO_ZCD:
     ;banksel PIR0 ;Bank 14
@@ -288,30 +299,23 @@ complementDelays:
 ;updateDelays
 ;No parameters
 ;No return value
+;Called from ISR so should not touch any shared variables
 updateDelays:
-    ;Disable interrupts
-    bcf INTCON, GIE
-    
-    ;Disable timer 0 in case we don't need it after this
-    banksel T0CON0 ;Bank 11
-    bcf T0CON0, T0EN
-    
-    banksel CH0_REG ;Bank 0
-    bcf CH0_REG, CH0_BIT
-    bcf CH1_REG, CH1_BIT
-    
     ;Clear some stuff
     ;banksel Flags0 ;Shared Bank
     clrf Flags0
     clrf Flags1
-    clrf Delay0
-    clrf Delay0+.1
-    clrf Delay1
-    clrf Delay1+.1
-    clrf Delay2
-    clrf Delay2+.1
+    movlw 0xFF
+    movwf Delay0
+    movwf Delay0+.1
+    movwf Delay1
+    movwf Delay1+.1
+    movwf Delay2
+    movwf Delay2+.1
     
-    call complementDelays
+    banksel CH0_REG ;Bank 0
+    bcf CH0_REG, CH0_BIT
+    bcf CH1_REG, CH1_BIT
     
     ;If Ch0Delay == 0
     banksel Ch0Delay ;Bank 0
@@ -330,13 +334,13 @@ updateDelays:
     bsf Flags0, F0_ALWAYS_ON_CH1
     ;banksel CH1_REG ;Bank 0
     bsf CH1_REG, CH1_BIT
-    ;Both Channels are always on, might as well return now
-    return
+    ;Both Channels are always on, gotta disable timer
+    goto UD_DISABLE_T0
 UD_CH1_NE_0:
     ;Check if Ch1 is Max
     Cmp16VtoL Ch1Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
-    return
+    goto UD_DISABLE_T0
     ;Ch0Delay == 0 and Ch1Delay != 0
     Copy16 Delay0, Ch1Delay
     bsf Flags0, F0_TURN_ON_0_CH1
@@ -355,7 +359,7 @@ UD_CH0_NE_0:
     ;Check if Ch0 is Max
     Cmp16VtoL Ch0Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
-    return
+    goto UD_DISABLE_T0
     ;Ch0Delay != 0 so setup delays
     Copy16 Delay0, Ch0Delay
     bsf Flags0, F0_TURN_ON_0_CH0
@@ -369,7 +373,7 @@ UD_BOTH_NE_0:
     goto UD_CH0_NE_CH1
     Cmp16VtoL Ch0Delay, MAX_DELAY
     btfsc WREG, CMP_16_EQ_BIT
-    return
+    goto UD_DISABLE_T0
     Copy16 Delay0, Ch0Delay
     bsf Flags0, F0_TURN_ON_0_CH0
     bsf Flags0, F0_TURN_ON_0_CH1
@@ -402,32 +406,16 @@ UD_CH0_LT_CH1:
     Sub16ReLmV Delay2, MAX_DELAY, Ch1Delay
 UD_ENDING:
     call complementDelays
-    
-    ;Clear timer to ensure it won't immediately roll over
-    banksel TMR0H ;Bank 11
-    clrf TMR0H
-    clrf TMR0L
-    bsf T0CON0, T0EN
-    
-    ;Clear any interrupts which occurred while we were processing
-    banksel PIR0 ;Bank 14
-    bcf PIR0, TMR0IF
-    ;banksel PIR2 ;Bank 14
-    bcf PIR2, ZCDIF
-    bcf PIR0, IOCIF
-    
-    ;Finally reenable interrupts
-    banksel PIE0 ; Bank 14
-    bsf PIE0, TMR0IE
-    bsf PIE2, ZCDIE
-    bsf PIE0, IOCIE
-    
     return
 UD_CH0_NE_CH1_MAX:
     ;Could try to add logic here to turn off output immediately, but meh
     Sub16ReLmV Delay1, MAX_DELAY, Delay0
     bsf Flags1, F1_TURN_OFF_2
     goto UD_ENDING
+UD_DISABLE_T0:
+    banksel T0CON0 ;Bank 11
+    bcf T0CON0, T0EN
+    return
     
 START:
     ;Setup analog select registers
@@ -488,20 +476,24 @@ START:
     movlw b'10000011'
     movwf ZCDCON
 
+#ifdef DEBUG
     ;Setup IOC for Debug
     banksel IOCCP
     bsf IOCCP, IOCCP0
     bsf IOCCN, IOCCN0
+#endif
     
     ;Setup Interrupts Global Bank
     bsf INTCON, PEIE
     bsf INTCON, GIE
     
     ;Setup Interrupts NonGlobal Bank
-;    banksel PIE0 ; Bank 14
-;    bsf PIE0, TMR0IE
-;    bsf PIE2, ZCDIE
-;    bsf PIE0, IOCIE
+    banksel PIE0 ; Bank 14
+    bsf PIE0, TMR0IE
+    bsf PIE2, ZCDIE
+#ifdef DEBUG
+    bsf PIE0, IOCIE
+#endif
     
     banksel RcvCnt ;Bank 0
     clrf RcvCnt
@@ -623,17 +615,10 @@ RCV_CNT_6:
 ACTIVATE:
     ;Set flag to indicate we need to update delays
     bsf Flags1, F1_UPDATE_DELAYS
-    ;Make sure if interrupts were disabled that we don't have a long
-    ;	unserviced interrupt flag
-    banksel PIR0
-    bcf PIR0, IOCIF
-    bcf PIR2, ZCDIF
-    ;Finally enable interrupts to be sure we catch the next ZC event
-    banksel PIE0
-    bsf PIE0, IOCIE
-    bsf PIE2, ZCDIE
     goto CMD_PROCESSED
 SET_CH1:
+    btfsc Flags1, F1_UPDATE_DELAYS
+    goto CMD_FAILED
     ;banksel Ch1Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
     btfsc WREG, CMP_16_GT_BIT
@@ -647,6 +632,8 @@ SET_CH1:
     banksel Ch1Delay ;Bank 0
     goto CMD_PROCESSED
 SET_CH0:
+    btfsc Flags1, F1_UPDATE_DELAYS
+    goto CMD_FAILED
     ;banksel Ch0Delay ; Bank 0 already set
     Cmp16VtoL CmdVal, MAX_DELAY
     btfsc WREG, CMP_16_GT_BIT
