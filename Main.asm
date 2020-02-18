@@ -3,6 +3,8 @@
 ;       EUSART shares ICSP pins RA0/RA1
 ;       ZCD remains the same RA2
 ;       CH0/1 remains the same RA4/RA5
+
+#define DEBUG
     
 #include "p16lf15323.inc"
 #include "AC-Dimmer.inc"
