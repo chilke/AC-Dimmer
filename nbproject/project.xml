@@ -14,6 +14,7 @@
             <make-dep-projects/>
             <sourceRootList>
                 <sourceRootElem>/Applications/microchip/mplabx/v5.20/mpasmx/LKR</sourceRootElem>
+                <sourceRootElem>/Applications/microchip/mplabx/v5.30/mpasmx/LKR</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
